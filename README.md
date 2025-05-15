@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Noto - Aplicación Kanban con Next.js y Supabase
 
-## Getting Started
+Noto es una aplicación de gestión de proyectos estilo Kanban construida con Next.js y Supabase. Permite gestionar proyectos, crear tableros con columnas, añadir tareas y asignarlas a usuarios.
 
-First, run the development server:
+## Requisitos previos
+
+-   Node.js v18 o superior
+-   Una cuenta en [Supabase](https://supabase.com)
+
+## Configuración de la base de datos
+
+Para el correcto funcionamiento de la aplicación, debes configurar las tablas en Supabase:
+
+1. Crea un nuevo proyecto en Supabase
+2. Configura la autenticación (email, Google, GitHub, etc.)
+3. Crea las tablas necesarias ejecutando el script SQL que se encuentra en `migrations/schema_completo.sql`
+4. Consulta las instrucciones detalladas en el archivo [INSTRUCCIONES_SUPABASE.md](./INSTRUCCIONES_SUPABASE.md)
+
+## Configuración del entorno
+
+1. Clona este repositorio
+2. Instala las dependencias:
+
+```bash
+npm install
+# o
+pnpm install
+# o
+yarn install
+```
+
+3. Crea un archivo `.env.local` con las siguientes variables:
+
+```env
+# URL de Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+# Clave anónima de Supabase (Public Key)
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-clave-publica
+# Clave secreta de Supabase (solo para uso en servidor)
+SUPABASE_SERVICE_ROLE_KEY=tu-clave-secreta
+```
+
+## Inicio del servidor de desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
+# o
 pnpm dev
-# or
-bun dev
+# o
+yarn dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) con tu navegador para ver la aplicación.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Características principales
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+-   Autenticación de usuarios con Supabase
+-   Creación y gestión de proyectos Kanban
+-   Tableros con columnas personalizables
+-   Tareas con descripción y asignación a usuarios
+-   Interfaz de arrastrar y soltar para mover tareas
+-   Diseño responsivo para dispositivos móviles y escritorio
 
-## Learn More
+## Estructura de la base de datos
 
-To learn more about Next.js, take a look at the following resources:
+La aplicación utiliza las siguientes tablas:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+-   `users`: Almacena información de los usuarios
+-   `projects`: Proyectos Kanban
+-   `columns`: Columnas dentro de cada proyecto (Por hacer, En progreso, etc.)
+-   `tasks`: Tareas individuales
+-   `task_assignments`: Asignaciones de tareas a usuarios
+-   `project_members`: Miembros de cada proyecto y sus roles
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tecnologías utilizadas
 
-## Deploy on Vercel
+-   [Next.js](https://nextjs.org) - Framework de React
+-   [TypeScript](https://www.typescriptlang.org) - Tipado estático
+-   [Supabase](https://supabase.com) - Gestión de base de datos y autenticación
+-   [Tailwind CSS](https://tailwindcss.com) - Estilos
+-   [Shadcn UI](https://ui.shadcn.com) - Componentes UI
+-   [Lucide React](https://lucide.dev) - Iconos
+-   [Auto Animate](https://auto-animate.formkit.com) - Animaciones
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contribución
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Las contribuciones son bienvenidas. Por favor, asegúrate de seguir estas pautas:
+
+1. Haz fork del repositorio
+2. Crea una nueva rama para tu funcionalidad (`git checkout -b feature/amazing-feature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some amazing feature'`)
+4. Envía tu rama (`git push origin feature/amazing-feature`)
+5. Abre un Pull Request
