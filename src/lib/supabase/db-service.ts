@@ -48,100 +48,52 @@ export const clientDbService = {
     // Proyectos
     async getProjects() {
         const supabase = createClientSupabaseClient();
+        const { data, error } = await supabase
+            .from("projects")
+            .select("*")
+            .order("created_at", { ascending: false });
 
-        try {
-            const { data, error } = await supabase
-                .from("projects")
-                .select("*")
-                .order("created_at", { ascending: false });
-
-            if (error) {
-                // Si el error es que la tabla no existe, devolver un array vacío
-                if (
-                    error.message?.includes("relation") &&
-                    error.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'projects' no existe. Necesitas crearla en Supabase."
-                    );
-                    return [];
-                }
-
-                // Si el error es de recursión infinita en la política
-                if (
-                    error.code === "42P17" &&
-                    error.message?.includes(
-                        "infinite recursion detected in policy"
-                    )
-                ) {
-                    console.error(
-                        "Se detectó recursión infinita en la política de la tabla 'projects'. " +
-                            "Ejecuta el script de corrección en INSTRUCCIONES_SUPABASE.md"
-                    );
-                    return [];
-                }
-
-                console.error("Error al obtener proyectos:", error);
-                throw error;
-            }
-
-            return data as DbProject[];
-        } catch (err) {
-            console.error("Error en getProjects:", err);
-            return []; // Devolver array vacío para que la app siga funcionando
+        if (error) {
+            console.error("Error al obtener proyectos:", error);
+            throw error;
         }
+
+        return data as DbProject[];
     },
 
     async createProject(name: string) {
         const supabase = createClientSupabaseClient();
 
-        try {
-            const { data, error } = await supabase
-                .from("projects")
-                .insert({ name, id: uuidv4() })
-                .select()
-                .single();
+        // Obtener el usuario actual
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser();
 
-            if (error) {
-                // Si el error es que la tabla no existe, devolver un proyecto simulado
-                if (
-                    error.message?.includes("relation") &&
-                    error.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'projects' no existe. Necesitas crearla en Supabase."
-                    );
-
-                    // Devolver un proyecto simulado
-                    const mockProject = {
-                        id: uuidv4(),
-                        name,
-                        user_id:
-                            (await supabase.auth.getUser()).data.user?.id || "",
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    };
-
-                    return mockProject as DbProject;
-                }
-
-                console.error("Error al crear proyecto:", error);
-                throw error;
-            }
-
-            return data as DbProject;
-        } catch (err) {
-            console.error("Error en createProject:", err);
-
-            // Devolver un proyecto simulado en caso de error
-            return {
-                id: uuidv4(),
-                name,
-                user_id: (await supabase.auth.getUser()).data.user?.id || "",
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            } as DbProject;
+        if (userError || !user) {
+            console.error("Error al obtener el usuario actual:", userError);
+            throw (
+                userError || new Error("No se pudo obtener el usuario actual")
+            );
         }
+
+        // Crear el proyecto con el ID del usuario actual
+        const { data, error } = await supabase
+            .from("projects")
+            .insert({
+                name,
+                id: uuidv4(),
+                user_id: user.id, // Establecer explícitamente el user_id
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error al crear proyecto:", error);
+            throw error;
+        }
+
+        return data as DbProject;
     },
 
     async updateProject(id: string, name: string) {
@@ -176,114 +128,34 @@ export const clientDbService = {
     // Columnas
     async getColumns(projectId: string) {
         const supabase = createClientSupabaseClient();
+        const { data, error } = await supabase
+            .from("columns")
+            .select("*")
+            .eq("project_id", projectId)
+            .order("position", { ascending: true });
 
-        try {
-            const { data, error } = await supabase
-                .from("columns")
-                .select("*")
-                .eq("project_id", projectId)
-                .order("position", { ascending: true });
-
-            if (error) {
-                // Si el error es que la tabla no existe, devolver un array vacío
-                if (
-                    error.message?.includes("relation") &&
-                    error.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'columns' no existe. Necesitas crearla en Supabase."
-                    );
-                    return [];
-                }
-
-                console.error("Error al obtener columnas:", error);
-                throw error;
-            }
-
-            return data as DbColumn[];
-        } catch (err) {
-            console.error("Error en getColumns:", err);
-            return []; // Devolver array vacío para que la app siga funcionando
+        if (error) {
+            console.error("Error al obtener columnas:", error);
+            throw error;
         }
+
+        return data as DbColumn[];
     },
 
     async createColumn(projectId: string, title: string, position: number) {
         const supabase = createClientSupabaseClient();
+        const { data, error } = await supabase
+            .from("columns")
+            .insert({ project_id: projectId, title, position, id: uuidv4() })
+            .select()
+            .single();
 
-        try {
-            const { data, error } = await supabase
-                .from("columns")
-                .insert({
-                    project_id: projectId,
-                    title,
-                    position,
-                    id: uuidv4(),
-                })
-                .select()
-                .single();
-
-            if (error) {
-                // Si el error es que la tabla no existe
-                if (
-                    error.message?.includes("relation") &&
-                    error.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'columns' no existe. Necesitas crearla en Supabase."
-                    );
-
-                    // Devolver una columna simulada
-                    return {
-                        id: uuidv4(),
-                        project_id: projectId,
-                        title,
-                        position,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    } as DbColumn;
-                }
-
-                // Si el error es de recursión infinita en la política
-                if (
-                    error.code === "42P17" &&
-                    error.message?.includes(
-                        "infinite recursion detected in policy"
-                    )
-                ) {
-                    console.error(
-                        "Se detectó recursión infinita en políticas RLS. " +
-                            "Ejecuta el script de corrección en INSTRUCCIONES_SUPABASE.md"
-                    );
-
-                    // Devolver una columna simulada
-                    return {
-                        id: uuidv4(),
-                        project_id: projectId,
-                        title,
-                        position,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    } as DbColumn;
-                }
-
-                console.error("Error al crear columna:", error);
-                throw error;
-            }
-
-            return data as DbColumn;
-        } catch (err) {
-            console.error("Error en createColumn:", err);
-
-            // Devolver una columna simulada en caso de error
-            return {
-                id: uuidv4(),
-                project_id: projectId,
-                title,
-                position,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            } as DbColumn;
+        if (error) {
+            console.error("Error al crear columna:", error);
+            throw error;
         }
+
+        return data as DbColumn;
     },
 
     async updateColumn(id: string, title: string) {
@@ -335,35 +207,18 @@ export const clientDbService = {
     // Tareas
     async getTasks(columnId: string) {
         const supabase = createClientSupabaseClient();
+        const { data, error } = await supabase
+            .from("tasks")
+            .select("*")
+            .eq("column_id", columnId)
+            .order("position", { ascending: true });
 
-        try {
-            const { data, error } = await supabase
-                .from("tasks")
-                .select("*")
-                .eq("column_id", columnId)
-                .order("position", { ascending: true });
-
-            if (error) {
-                // Si el error es que la tabla no existe, devolver un array vacío
-                if (
-                    error.message?.includes("relation") &&
-                    error.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'tasks' no existe. Necesitas crearla en Supabase."
-                    );
-                    return [];
-                }
-
-                console.error("Error al obtener tareas:", error);
-                throw error;
-            }
-
-            return data as DbTask[];
-        } catch (err) {
-            console.error("Error en getTasks:", err);
-            return []; // Devolver array vacío para que la app siga funcionando
+        if (error) {
+            console.error("Error al obtener tareas:", error);
+            throw error;
         }
+
+        return data as DbTask[];
     },
 
     async createTask(
@@ -373,61 +228,24 @@ export const clientDbService = {
         position: number
     ) {
         const supabase = createClientSupabaseClient();
-
-        try {
-            const { data, error } = await supabase
-                .from("tasks")
-                .insert({
-                    column_id: columnId,
-                    title,
-                    description,
-                    position,
-                    id: uuidv4(),
-                })
-                .select()
-                .single();
-
-            if (error) {
-                // Si el error es que la tabla no existe, devolver una tarea simulada
-                if (
-                    error.message?.includes("relation") &&
-                    error.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'tasks' no existe. Necesitas crearla en Supabase."
-                    );
-
-                    // Devolver una tarea simulada
-                    return {
-                        id: uuidv4(),
-                        column_id: columnId,
-                        title,
-                        description,
-                        position,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                    } as DbTask;
-                }
-
-                console.error("Error al crear tarea:", error);
-                throw error;
-            }
-
-            return data as DbTask;
-        } catch (err) {
-            console.error("Error en createTask:", err);
-
-            // Devolver una tarea simulada en caso de error
-            return {
-                id: uuidv4(),
+        const { data, error } = await supabase
+            .from("tasks")
+            .insert({
                 column_id: columnId,
                 title,
                 description,
                 position,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            } as DbTask;
+                id: uuidv4(),
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error al crear tarea:", error);
+            throw error;
         }
+
+        return data as DbTask;
     },
 
     async updateTask(id: string, title: string, description: string | null) {
@@ -535,256 +353,162 @@ export const clientDbService = {
     // Usuarios
     async getUsers() {
         const supabase = createClientSupabaseClient();
-        const { data, error } = await supabase.from("users").select("*");
 
-        if (error) {
+        try {
+            const { data, error } = await supabase.from("users").select("*");
+
+            if (error) {
+                console.error("Error al obtener usuarios:", error);
+                throw error;
+            }
+
+            return data as KanbanUser[];
+        } catch (error) {
             console.error("Error al obtener usuarios:", error);
-            throw error;
+            // Si hay un error, devolver una lista vacía como fallback
+            return [];
         }
-
-        return data as KanbanUser[];
     },
 
     // Cargar datos completos del proyecto
     async loadFullProject(projectId: string) {
         const supabase = createClientSupabaseClient();
 
-        try {
-            // Obtener proyecto
-            const { data: project, error: projectError } = await supabase
-                .from("projects")
-                .select("*")
-                .eq("id", projectId)
-                .single();
+        // Obtener proyecto
+        const { data: project, error: projectError } = await supabase
+            .from("projects")
+            .select("*")
+            .eq("id", projectId)
+            .single();
 
-            if (projectError) {
-                // Si el error es que la tabla no existe, devolver un proyecto simulado
-                if (
-                    projectError.message?.includes("relation") &&
-                    projectError.message?.includes("does not exist")
-                ) {
-                    console.error(
-                        "La tabla 'projects' no existe. Necesitas crearla en Supabase."
-                    );
+        if (projectError) {
+            console.error("Error al obtener proyecto:", projectError);
+            throw projectError;
+        }
 
-                    // Crear un proyecto simulado con columnas vacías
-                    return {
-                        id: projectId,
-                        name: "Proyecto temporal",
-                        user_id:
-                            (await supabase.auth.getUser()).data.user?.id || "",
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        columns: [],
-                    };
-                }
+        // Obtener columnas
+        const { data: columns, error: columnsError } = await supabase
+            .from("columns")
+            .select("*")
+            .eq("project_id", projectId)
+            .order("position", { ascending: true });
 
-                // Si el error es de recursión infinita en la política
-                if (
-                    projectError.code === "42P17" &&
-                    projectError.message?.includes(
-                        "infinite recursion detected in policy"
-                    )
-                ) {
-                    console.error(
-                        "Se detectó recursión infinita en la política de la tabla 'projects'. " +
-                            "Ejecuta el script de corrección en INSTRUCCIONES_SUPABASE.md"
-                    );
+        if (columnsError) {
+            console.error("Error al obtener columnas:", columnsError);
+            throw columnsError;
+        }
 
-                    // Crear un proyecto simulado con columnas vacías
-                    return {
-                        id: projectId,
-                        name: "Proyecto (error de política RLS)",
-                        user_id:
-                            (await supabase.auth.getUser()).data.user?.id || "",
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        columns: [],
-                    };
-                }
-
-                console.error("Error al obtener proyecto:", projectError);
-                throw projectError;
-            }
-
-            try {
-                // Obtener columnas
-                const { data: columns, error: columnsError } = await supabase
-                    .from("columns")
+        // Para cada columna, obtener sus tareas
+        const columnsWithTasks = await Promise.all(
+            (columns as DbColumn[]).map(async (column: DbColumn) => {
+                const { data: tasks, error: tasksError } = await supabase
+                    .from("tasks")
                     .select("*")
-                    .eq("project_id", projectId)
+                    .eq("column_id", column.id)
                     .order("position", { ascending: true });
 
-                if (columnsError) {
-                    // Si el error es que la tabla no existe, devolver proyecto con columnas vacías
-                    if (
-                        columnsError.message?.includes("relation") &&
-                        columnsError.message?.includes("does not exist")
-                    ) {
-                        console.error(
-                            "La tabla 'columns' no existe. Necesitas crearla en Supabase."
-                        );
-
-                        return {
-                            ...project,
-                            columns: [],
-                        };
-                    }
-
-                    console.error("Error al obtener columnas:", columnsError);
-                    throw columnsError;
+                if (tasksError) {
+                    console.error("Error al obtener tareas:", tasksError);
+                    throw tasksError;
                 }
 
-                // Para cada columna, obtener sus tareas
-                const columnsWithTasks = await Promise.all(
-                    (columns as DbColumn[]).map(async (column) => {
+                // Para cada tarea, obtener sus asignaciones
+                const tasksWithAssignments = await Promise.all(
+                    tasks.map(async (task) => {
                         try {
-                            const { data: tasks, error: tasksError } =
-                                await supabase
-                                    .from("tasks")
-                                    .select("*")
-                                    .eq("column_id", column.id)
-                                    .order("position", { ascending: true });
+                            const {
+                                data: assignments,
+                                error: assignmentsError,
+                            } = await supabase
+                                .from("task_assignments")
+                                .select("*, users:user_id(*)")
+                                .eq("task_id", task.id as string);
 
-                            if (tasksError) {
-                                // Si el error es que la tabla no existe, devolver columna con tareas vacías
-                                if (
-                                    tasksError.message?.includes("relation") &&
-                                    tasksError.message?.includes(
-                                        "does not exist"
-                                    )
-                                ) {
-                                    console.error(
-                                        "La tabla 'tasks' no existe. Necesitas crearla en Supabase."
-                                    );
-
-                                    return {
-                                        ...column,
-                                        tasks: [],
-                                    };
-                                }
-
+                            if (assignmentsError) {
                                 console.error(
-                                    "Error al obtener tareas:",
-                                    tasksError
+                                    "Error al obtener asignaciones:",
+                                    assignmentsError
                                 );
-                                throw tasksError;
+                                return {
+                                    ...task,
+                                    assignedUsers: [],
+                                };
                             }
 
-                            // Para cada tarea, obtener sus asignaciones
-                            const tasksWithAssignments = await Promise.all(
-                                (tasks as DbTask[]).map(async (task) => {
-                                    try {
-                                        const {
-                                            data: assignments,
-                                            error: assignmentsError,
-                                        } = await supabase
-                                            .from("task_assignments")
-                                            .select("*, users:user_id(*)")
-                                            .eq("task_id", task.id);
-
-                                        if (assignmentsError) {
-                                            // Si el error es que la tabla no existe, devolver tarea sin asignaciones
-                                            if (
-                                                assignmentsError.message?.includes(
-                                                    "relation"
-                                                ) &&
-                                                assignmentsError.message?.includes(
-                                                    "does not exist"
-                                                )
-                                            ) {
-                                                console.error(
-                                                    "La tabla 'task_assignments' o 'users' no existe. Necesitas crearla en Supabase."
-                                                );
-
-                                                return {
-                                                    ...task,
-                                                    assignedUsers: [],
-                                                };
-                                            }
-
-                                            console.error(
-                                                "Error al obtener asignaciones:",
-                                                assignmentsError
-                                            );
-                                            throw assignmentsError;
-                                        }
-
-                                        return {
-                                            ...task,
-                                            assignedUsers: assignments.map(
-                                                (assignment: any) => ({
-                                                    id:
-                                                        assignment.users?.id ||
-                                                        "",
-                                                    name:
-                                                        assignment.users
-                                                            ?.name ||
-                                                        assignment.users
-                                                            ?.email ||
-                                                        "",
-                                                    email:
-                                                        assignment.users
-                                                            ?.email || "",
-                                                    avatar:
-                                                        assignment.users
-                                                            ?.avatar_url ||
-                                                        null,
-                                                })
-                                            ),
-                                        };
-                                    } catch (err) {
-                                        console.error(
-                                            "Error en procesamiento de tarea:",
-                                            err
-                                        );
-                                        return {
-                                            ...task,
-                                            assignedUsers: [],
-                                        };
-                                    }
-                                })
-                            );
-
                             return {
-                                ...column,
-                                tasks: tasksWithAssignments,
+                                ...task,
+                                assignedUsers: assignments.map(
+                                    (assignment: any) => ({
+                                        id:
+                                            assignment.users?.id ||
+                                            assignment.user_id,
+                                        name:
+                                            assignment.users?.name ||
+                                            assignment.users?.email ||
+                                            "Usuario",
+                                        email: assignment.users?.email || "",
+                                        avatar: assignment.users?.avatar_url,
+                                    })
+                                ),
                             };
-                        } catch (err) {
+                        } catch (error) {
                             console.error(
-                                "Error en procesamiento de columna:",
-                                err
+                                `Error al procesar asignaciones para tarea ${task.id}:`,
+                                error
                             );
                             return {
-                                ...column,
-                                tasks: [],
+                                ...task,
+                                assignedUsers: [],
                             };
                         }
                     })
                 );
 
                 return {
-                    ...project,
-                    columns: columnsWithTasks,
+                    ...column,
+                    tasks: tasksWithAssignments,
                 };
-            } catch (err) {
-                console.error("Error en loadFullProject:", err);
-                return {
-                    ...project,
-                    columns: [],
-                };
+            })
+        );
+
+        return {
+            ...project,
+            columns: columnsWithTasks,
+        };
+    },
+
+    // Crear o actualizar un usuario en la tabla users
+    async upsertUser(user: {
+        id: string;
+        email: string;
+        name?: string;
+        avatar_url?: string;
+    }) {
+        const supabase = createClientSupabaseClient();
+
+        try {
+            const { data, error } = await supabase
+                .from("users")
+                .upsert({
+                    id: user.id,
+                    email: user.email,
+                    name: user.name || user.email.split("@")[0],
+                    avatar_url: user.avatar_url,
+                    updated_at: new Date().toISOString(),
+                })
+                .select()
+                .single();
+
+            if (error) {
+                console.error("Error al crear/actualizar usuario:", error);
+                throw error;
             }
-        } catch (err) {
-            console.error("Error en loadFullProject:", err);
-            // Devolver un proyecto básico en caso de error
-            return {
-                id: projectId,
-                name: "Proyecto (error al cargar)",
-                user_id: (await supabase.auth.getUser()).data.user?.id || "",
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                columns: [],
-            };
+
+            return data as KanbanUser;
+        } catch (error) {
+            console.error("Error al crear/actualizar usuario:", error);
+            // Devolver el usuario original como fallback
+            return user as KanbanUser;
         }
     },
 };
