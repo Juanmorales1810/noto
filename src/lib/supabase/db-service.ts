@@ -416,12 +416,13 @@ export const clientDbService = {
                 const tasksWithAssignments = await Promise.all(
                     tasks.map(async (task) => {
                         try {
+                            // Primero obtener las asignaciones
                             const {
                                 data: assignments,
                                 error: assignmentsError,
                             } = await supabase
                                 .from("task_assignments")
-                                .select("*, users:user_id(*)")
+                                .select("*")
                                 .eq("task_id", task.id as string);
 
                             if (assignmentsError) {
@@ -435,21 +436,48 @@ export const clientDbService = {
                                 };
                             }
 
+                            // Para cada asignación, obtener el usuario correspondiente
+                            const assignedUsers = await Promise.all(
+                                assignments.map(
+                                    //@ts-ignore
+                                    async (assignment: DbTaskAssignment) => {
+                                        const {
+                                            data: userData,
+                                            error: userError,
+                                        } = await supabase
+                                            .from("users")
+                                            .select("*")
+                                            .eq("id", assignment.user_id)
+                                            .single();
+
+                                        if (userError) {
+                                            console.error(
+                                                "Error al obtener usuario:",
+                                                userError
+                                            );
+                                            return {
+                                                id: assignment.user_id,
+                                                name: "Usuario",
+                                                email: "",
+                                                avatar: null,
+                                            };
+                                        }
+
+                                        return {
+                                            id: userData.id,
+                                            name:
+                                                userData.name ||
+                                                userData.email ||
+                                                "Usuario",
+                                            email: userData.email || "",
+                                            avatar: userData.avatar_url,
+                                        };
+                                    }
+                                )
+                            );
                             return {
                                 ...task,
-                                assignedUsers: assignments.map(
-                                    (assignment: any) => ({
-                                        id:
-                                            assignment.users?.id ||
-                                            assignment.user_id,
-                                        name:
-                                            assignment.users?.name ||
-                                            assignment.users?.email ||
-                                            "Usuario",
-                                        email: assignment.users?.email || "",
-                                        avatar: assignment.users?.avatar_url,
-                                    })
-                                ),
+                                assignedUsers,
                             };
                         } catch (error) {
                             console.error(
