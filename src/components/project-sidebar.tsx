@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
     Sidebar,
     SidebarContent,
@@ -41,6 +42,7 @@ import {
     LogOut,
     StickyNote,
 } from "lucide-react";
+import { ModeToggle } from "./toggle-mode";
 
 export type Project = {
     id: string;
@@ -70,6 +72,10 @@ export function ProjectSidebar({
 }: ProjectSidebarProps) {
     const [newProjectName, setNewProjectName] = useState("");
     const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [showConfigModal, setShowConfigModal] = useState(false);
+    const [userName, setUserName] = useState("");
+    const [userAvatar, setUserAvatar] = useState("");
+    const [theme, setTheme] = useState("light");
 
     const handleCreateProject = () => {
         if (newProjectName.trim()) {
@@ -96,6 +102,38 @@ export function ProjectSidebar({
         if (!email) return "U";
         const parts = email.split("@");
         return parts[0].charAt(0).toUpperCase();
+    };
+
+    // Abrir modal de configuración
+    const openConfigModal = () => {
+        // Aquí podrías cargar los datos actuales del usuario desde la base de datos
+        // Por ahora, inicializamos con valores por defecto
+        setUserName(userEmail.split("@")[0]);
+        setUserAvatar("");
+        setTheme("light");
+        setShowConfigModal(true);
+    }; // Guardar configuración del usuario
+    const saveUserConfig = async () => {
+        try {
+            // Aquí implementarías la lógica para guardar los cambios en la base de datos
+            // Por ejemplo:
+            // await userService.updateUserProfile(userId, { name: userName, avatar_url: userAvatar });
+
+            // Por ahora, simplemente cerramos el modal
+            setShowConfigModal(false);
+
+            // Mostrar mensaje de éxito
+            toast.success("Configuración guardada", {
+                description:
+                    "Tus preferencias de usuario se han guardado correctamente.",
+            });
+        } catch (error) {
+            console.error("Error al guardar la configuración:", error);
+            toast.error("Error", {
+                description:
+                    "No se pudo guardar la configuración. Por favor, intenta de nuevo.",
+            });
+        }
     };
 
     return (
@@ -260,7 +298,7 @@ export function ProjectSidebar({
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton>
+                        <SidebarMenuButton onClick={openConfigModal}>
                             <Settings className="h-4 w-4 mr-2" />
                             <span>Configuración</span>
                         </SidebarMenuButton>
@@ -273,6 +311,52 @@ export function ProjectSidebar({
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>
+
+            {/* Modal de configuración */}
+            <Dialog open={showConfigModal} onOpenChange={setShowConfigModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Configuración de usuario</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="user-name">Nombre</Label>
+                            <Input
+                                id="user-name"
+                                value={userName}
+                                onChange={(e) => setUserName(e.target.value)}
+                            />
+                        </div>{" "}
+                        <div className="grid gap-2">
+                            <Label htmlFor="user-avatar">Avatar URL</Label>
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-12 w-12">
+                                    <AvatarFallback>
+                                        {getInitials(userName || userEmail)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <Input
+                                    id="user-avatar"
+                                    value={userAvatar}
+                                    onChange={(e) =>
+                                        setUserAvatar(e.target.value)
+                                    }
+                                    placeholder="URL de tu avatar (opcional)"
+                                />
+                            </div>
+                        </div>{" "}
+                        <div className="grid gap-2">
+                            <Label htmlFor="theme">Tema</Label>
+                            <ModeToggle />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={saveUserConfig}>
+                            Guardar cambios
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Sidebar>
     );
 }
