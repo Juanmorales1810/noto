@@ -36,7 +36,6 @@ import {
     Loader2,
     GripVertical,
 } from "lucide-react";
-import { dragAndDrop } from "@formkit/drag-and-drop";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
     SidebarProvider,
@@ -81,7 +80,6 @@ type NotoProject = {
 export default function NotoBoard() {
     const { user, signOut } = useAuth();
     const router = useRouter();
-    const boardRef = useRef<HTMLDivElement>(null);
     const [columnsParent] = useAutoAnimate();
 
     // Estado para usuarios
