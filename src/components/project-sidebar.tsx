@@ -37,9 +37,9 @@ import {
     MoreHorizontal,
     Edit,
     Trash2,
-    Kanban,
     Settings,
     LogOut,
+    StickyNote,
 } from "lucide-react";
 
 export type Project = {
@@ -102,8 +102,8 @@ export function ProjectSidebar({
         <Sidebar>
             <SidebarHeader>
                 <div className="flex items-center gap-2 px-4 py-2">
-                    <Kanban className="h-6 w-6" />
-                    <h1 className="text-xl font-bold">Kanban App</h1>
+                    <StickyNote className="size-5" />
+                    <h1 className="text-xl font-bold">Noto App</h1>
                 </div>
             </SidebarHeader>
 
