@@ -110,7 +110,14 @@ export default function NotoBoard() {
 
     // Estados para editar tarea
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [editingColumnId, setEditingColumnId] = useState(""); // Vamos a definir una función para manejar el arrastre y soltura de tareas
+    const [editingColumnId, setEditingColumnId] = useState("");
+    // Estado para editar columna
+    const [editingColumnTitle, setEditingColumnTitle] = useState("");
+    const [editingColumnForTitle, setEditingColumnForTitle] = useState<
+        string | null
+    >(null);
+
+    // Vamos a definir una función para manejar el arrastre y soltura de tareas
     const handleTaskDrop = async (
         e: React.DragEvent,
         destinationColumnId: string
@@ -541,7 +548,7 @@ export default function NotoBoard() {
         }
     };
 
-    // Función para preparar la creación de una nueva tarea
+    // Función para preparar la edición de una tarea
     const prepareNewTask = (columnId: string) => {
         setNewTaskColumnId(columnId);
         setNewTaskTitle("");
@@ -776,6 +783,62 @@ export default function NotoBoard() {
         }
     };
 
+    // Función para preparar la edición de una columna
+    const prepareEditColumn = (column: Column) => {
+        setEditingColumnForTitle(column.id);
+        setEditingColumnTitle(column.title);
+    };
+
+    // Función para actualizar el título de una columna
+    const updateColumnTitle = async () => {
+        if (
+            !activeProjectId ||
+            !editingColumnForTitle ||
+            editingColumnTitle.trim() === ""
+        )
+            return;
+
+        try {
+            await clientDbService.updateColumn(
+                editingColumnForTitle,
+                editingColumnTitle
+            );
+
+            setProjects(
+                projects.map((project) =>
+                    project.id === activeProjectId
+                        ? {
+                              ...project,
+                              columns: project.columns.map((column) => {
+                                  if (column.id === editingColumnForTitle) {
+                                      return {
+                                          ...column,
+                                          title: editingColumnTitle,
+                                      };
+                                  }
+                                  return column;
+                              }),
+                          }
+                        : project
+                )
+            );
+
+            setEditingColumnForTitle(null);
+            setEditingColumnTitle("");
+
+            toast.success("Columna actualizada", {
+                description:
+                    "El título de la columna ha sido actualizado exitosamente.",
+            });
+        } catch (error) {
+            console.error("Error al actualizar columna:", error);
+            toast.error("Error", {
+                description:
+                    "No se pudo actualizar la columna. Por favor, intenta de nuevo.",
+            });
+        }
+    };
+
     // Extraer proyectos para el sidebar
     const sidebarProjects: Project[] = projects.map((p) => ({
         id: p.id,
@@ -851,8 +914,70 @@ export default function NotoBoard() {
                                                             Acciones
                                                         </span>
                                                     </Button>
-                                                </DropdownMenuTrigger>
+                                                </DropdownMenuTrigger>{" "}
                                                 <DropdownMenuContent align="end">
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <DropdownMenuItem
+                                                                onSelect={(
+                                                                    e
+                                                                ) => {
+                                                                    e.preventDefault();
+                                                                    prepareEditColumn(
+                                                                        column
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                <span>
+                                                                    Editar
+                                                                    columna
+                                                                </span>
+                                                            </DropdownMenuItem>
+                                                        </DialogTrigger>
+                                                        <DialogContent>
+                                                            <DialogHeader>
+                                                                <DialogTitle>
+                                                                    Editar
+                                                                    columna
+                                                                </DialogTitle>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <div className="grid gap-2">
+                                                                    <Label htmlFor="column-title">
+                                                                        Título
+                                                                        de la
+                                                                        columna
+                                                                    </Label>
+                                                                    <Input
+                                                                        id="column-title"
+                                                                        value={
+                                                                            editingColumnTitle
+                                                                        }
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            setEditingColumnTitle(
+                                                                                e
+                                                                                    .target
+                                                                                    .value
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <DialogFooter>
+                                                                <Button
+                                                                    onClick={
+                                                                        updateColumnTitle
+                                                                    }
+                                                                >
+                                                                    Guardar
+                                                                    cambios
+                                                                </Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
                                                     <DropdownMenuItem
                                                         onClick={() =>
                                                             deleteColumn(
