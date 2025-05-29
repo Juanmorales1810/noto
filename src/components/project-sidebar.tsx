@@ -53,17 +53,26 @@ type ProjectSidebarProps = {
     projects: Project[];
     activeProjectId: string;
     userEmail: string;
+    users: User[];
     onProjectSelect: (projectId: string) => void;
-    onProjectCreate: (projectName: string) => void;
+    onProjectCreate: (projectName: string, memberUserIds?: string[]) => void;
     onProjectUpdate: (projectId: string, projectName: string) => void;
     onProjectDelete: (projectId: string) => void;
     onSignOut: () => void;
+};
+
+export type User = {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
 };
 
 export function ProjectSidebar({
     projects,
     activeProjectId,
     userEmail,
+    users,
     onProjectSelect,
     onProjectCreate,
     onProjectUpdate,
@@ -71,17 +80,30 @@ export function ProjectSidebar({
     onSignOut,
 }: ProjectSidebarProps) {
     const [newProjectName, setNewProjectName] = useState("");
+    const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [userName, setUserName] = useState("");
     const [userAvatar, setUserAvatar] = useState("");
     const [theme, setTheme] = useState("light");
-
     const handleCreateProject = () => {
         if (newProjectName.trim()) {
-            onProjectCreate(newProjectName);
+            const memberUserIds = selectedUsers.map((user) => user.id);
+            onProjectCreate(newProjectName, memberUserIds);
             setNewProjectName("");
+            setSelectedUsers([]);
         }
+    };
+
+    const toggleUserSelection = (user: User) => {
+        setSelectedUsers((prev) => {
+            const isSelected = prev.some((u) => u.id === user.id);
+            if (isSelected) {
+                return prev.filter((u) => u.id !== user.id);
+            } else {
+                return [...prev, user];
+            }
+        });
     };
 
     const handleUpdateProject = () => {
@@ -161,7 +183,7 @@ export function ProjectSidebar({
                                         Nuevo proyecto
                                     </span>
                                 </Button>
-                            </DialogTrigger>
+                            </DialogTrigger>{" "}
                             <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Nuevo proyecto</DialogTitle>
@@ -181,6 +203,77 @@ export function ProjectSidebar({
                                             }
                                             placeholder="Mi nuevo proyecto"
                                         />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>
+                                            Agregar miembros al proyecto
+                                            (opcional)
+                                        </Label>
+                                        <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2">
+                                            {users.length > 0 ? (
+                                                users.map((user) => {
+                                                    const isSelected =
+                                                        selectedUsers.some(
+                                                            (u) =>
+                                                                u.id === user.id
+                                                        );
+                                                    return (
+                                                        <div
+                                                            key={user.id}
+                                                            className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/50 ${
+                                                                isSelected
+                                                                    ? "bg-muted"
+                                                                    : ""
+                                                            }`}
+                                                            onClick={() =>
+                                                                toggleUserSelection(
+                                                                    user
+                                                                )
+                                                            }
+                                                        >
+                                                            <Avatar className="h-6 w-6">
+                                                                <AvatarFallback className="text-xs">
+                                                                    {user.name
+                                                                        .charAt(
+                                                                            0
+                                                                        )
+                                                                        .toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <div className="flex-1 text-sm">
+                                                                <div className="font-medium">
+                                                                    {user.name}
+                                                                </div>
+                                                                <div className="text-muted-foreground text-xs">
+                                                                    {user.email}
+                                                                </div>
+                                                            </div>
+                                                            {isSelected && (
+                                                                <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                                                                    <div className="h-2 w-2 rounded-full bg-white"></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="text-sm text-muted-foreground text-center py-4">
+                                                    No hay usuarios disponibles
+                                                </div>
+                                            )}
+                                        </div>
+                                        {selectedUsers.length > 0 && (
+                                            <div className="text-sm text-muted-foreground">
+                                                {selectedUsers.length} usuario
+                                                {selectedUsers.length === 1
+                                                    ? ""
+                                                    : "s"}{" "}
+                                                seleccionado
+                                                {selectedUsers.length === 1
+                                                    ? ""
+                                                    : "s"}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <DialogFooter>
