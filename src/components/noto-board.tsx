@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectSidebar } from "@/components/project-sidebar";
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
@@ -37,9 +38,9 @@ import { Project } from "@/components/project-sidebar";
 export default function NotoBoard() {
     const { user, signOut } = useAuth();
     const router = useRouter();
-    
-    // Estado para nuevo proyecto
+      // Estado para nuevo proyecto
     const [newProjectName, setNewProjectName] = useState("");
+    const [selectedUsersForProject, setSelectedUsersForProject] = useState<any[]>([]);
     
     // Hook para manejar proyectos (ahora pasa el user como parámetro)
     const {
@@ -93,18 +94,29 @@ export default function NotoBoard() {
         } catch (error) {
             console.error("Error al cerrar sesión:", error);
         }
-    };
-
-    // Función para crear nuevo proyecto
+    };    // Función para crear nuevo proyecto
     const createNewProject = async () => {
         if (!newProjectName.trim()) return;
         
         try {
-            await handleProjectCreate(newProjectName.trim());
+            const memberUserIds = selectedUsersForProject.map(user => user.id);
+            await handleProjectCreate(newProjectName.trim(), memberUserIds);
             setNewProjectName("");
+            setSelectedUsersForProject([]);
         } catch (error) {
             console.error("Error al crear proyecto:", error);
         }
+    };
+
+    const toggleUserForProject = (user: any) => {
+        setSelectedUsersForProject(prev => {
+            const isSelected = prev.some(u => u.id === user.id);
+            if (isSelected) {
+                return prev.filter(u => u.id !== user.id);
+            } else {
+                return [...prev, user];
+            }
+        });
     };
 
     // Preparar proyectos para la sidebar
@@ -129,6 +141,7 @@ export default function NotoBoard() {
                 projects={sidebarProjects}
                 activeProjectId={activeProject?.id || ""}
                 userEmail={user?.email || ""}
+                users={users}
                 onProjectSelect={handleProjectSelect}
                 onProjectCreate={handleProjectCreate}
                 onProjectUpdate={handleProjectUpdate}
@@ -151,8 +164,7 @@ export default function NotoBoard() {
                                         <Plus className="mr-2 h-4 w-4" />
                                         Nuevo Proyecto
                                     </Button>
-                                </DialogTrigger>
-                                <DialogContent>
+                                </DialogTrigger>                                <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>
                                             Crear Nuevo Proyecto
@@ -171,6 +183,49 @@ export default function NotoBoard() {
                                                 }
                                                 placeholder="Ingresa el nombre del proyecto"
                                             />
+                                        </div>
+                                        <div>
+                                            <Label>Agregar miembros al proyecto (opcional)</Label>
+                                            <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2 mt-2">
+                                                {users.length > 0 ? (
+                                                    users.map((user) => {
+                                                        const isSelected = selectedUsersForProject.some(u => u.id === user.id);
+                                                        return (
+                                                            <div
+                                                                key={user.id}
+                                                                className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/50 ${
+                                                                    isSelected ? 'bg-muted' : ''
+                                                                }`}
+                                                                onClick={() => toggleUserForProject(user)}
+                                                            >
+                                                                <Avatar className="h-6 w-6">
+                                                                    <AvatarFallback className="text-xs">
+                                                                        {user.name.charAt(0).toUpperCase()}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="flex-1 text-sm">
+                                                                    <div className="font-medium">{user.name}</div>
+                                                                    <div className="text-muted-foreground text-xs">{user.email}</div>
+                                                                </div>
+                                                                {isSelected && (
+                                                                    <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                                                                        <div className="h-2 w-2 rounded-full bg-white"></div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="text-sm text-muted-foreground text-center py-4">
+                                                        No hay usuarios disponibles
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {selectedUsersForProject.length > 0 && (
+                                                <div className="text-sm text-muted-foreground mt-2">
+                                                    {selectedUsersForProject.length} usuario{selectedUsersForProject.length === 1 ? '' : 's'} seleccionado{selectedUsersForProject.length === 1 ? '' : 's'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <DialogFooter>
@@ -235,8 +290,7 @@ export default function NotoBoard() {
                                         <Plus className="mr-2 h-4 w-4" />
                                         Crear Proyecto
                                     </Button>
-                                </DialogTrigger>
-                                <DialogContent>
+                                </DialogTrigger>                                <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>
                                             Crear Nuevo Proyecto
@@ -255,6 +309,49 @@ export default function NotoBoard() {
                                                 }
                                                 placeholder="Ingresa el nombre del proyecto"
                                             />
+                                        </div>
+                                        <div>
+                                            <Label>Agregar miembros al proyecto (opcional)</Label>
+                                            <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2 mt-2">
+                                                {users.length > 0 ? (
+                                                    users.map((user) => {
+                                                        const isSelected = selectedUsersForProject.some(u => u.id === user.id);
+                                                        return (
+                                                            <div
+                                                                key={user.id}
+                                                                className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/50 ${
+                                                                    isSelected ? 'bg-muted' : ''
+                                                                }`}
+                                                                onClick={() => toggleUserForProject(user)}
+                                                            >
+                                                                <Avatar className="h-6 w-6">
+                                                                    <AvatarFallback className="text-xs">
+                                                                        {user.name.charAt(0).toUpperCase()}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="flex-1 text-sm">
+                                                                    <div className="font-medium">{user.name}</div>
+                                                                    <div className="text-muted-foreground text-xs">{user.email}</div>
+                                                                </div>
+                                                                {isSelected && (
+                                                                    <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                                                                        <div className="h-2 w-2 rounded-full bg-white"></div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="text-sm text-muted-foreground text-center py-4">
+                                                        No hay usuarios disponibles
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {selectedUsersForProject.length > 0 && (
+                                                <div className="text-sm text-muted-foreground mt-2">
+                                                    {selectedUsersForProject.length} usuario{selectedUsersForProject.length === 1 ? '' : 's'} seleccionado{selectedUsersForProject.length === 1 ? '' : 's'}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <DialogFooter>
