@@ -171,11 +171,9 @@ export function useProjects(user: any) {
 
     const handleProjectSelect = (projectId: string) => {
         setActiveProjectId(projectId);
-    };
-
-    const handleProjectCreate = async (projectName: string) => {
+    };    const handleProjectCreate = async (projectName: string, memberUserIds: string[] = []) => {
         try {
-            const newProject = await clientDbService.createProject(projectName);
+            const newProject = await clientDbService.createProjectWithMembers(projectName, memberUserIds);
 
             // Crear columnas por defecto
             const column1 = await clientDbService.createColumn(
@@ -207,8 +205,13 @@ export function useProjects(user: any) {
             setProjects([...projects, projectWithColumns]);
             setActiveProjectId(newProject.id);
 
+            const memberCount = memberUserIds.length;
+            const successMessage = memberCount > 0 
+                ? `El proyecto "${projectName}" ha sido creado con ${memberCount} miembro${memberCount === 1 ? '' : 's'}.`
+                : `El proyecto "${projectName}" ha sido creado exitosamente.`;
+
             toast.success("Proyecto creado", {
-                description: `El proyecto "${projectName}" ha sido creado exitosamente.`,
+                description: successMessage,
             });
         } catch (error) {
             console.error("Error al crear proyecto:", error);

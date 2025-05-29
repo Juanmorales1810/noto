@@ -68,7 +68,7 @@ export const clientDbService = {
             throw (
                 userError || new Error("No se pudo obtener el usuario actual")
             );
-        }        // Primero obtener todos los proyectos donde el usuario es propietario
+        } // Primero obtener todos los proyectos donde el usuario es propietario
         const { data: ownedProjects, error: ownedError } = await supabase
             .from("projects")
             .select("*")
@@ -77,20 +77,22 @@ export const clientDbService = {
         if (ownedError) {
             console.error("Error al obtener proyectos propios:", ownedError);
             throw ownedError;
-        }        // Luego obtener los IDs de proyectos donde el usuario es miembro
+        } // Luego obtener los IDs de proyectos donde el usuario es miembro
         let memberProjects = null;
         let memberError = null;
-        
+
         try {
             const result = await supabase
                 .from("project_members")
                 .select("project_id")
                 .eq("user_id", user.id);
-            
+
             memberProjects = result.data;
             memberError = result.error;
         } catch (error) {
-            console.warn("Tabla project_members no existe aún, mostrando solo proyectos propios");
+            console.warn(
+                "Tabla project_members no existe aún, mostrando solo proyectos propios"
+            );
             memberError = error;
         }
 
@@ -103,7 +105,8 @@ export const clientDbService = {
 
         // Obtener los proyectos donde es miembro (excluyendo los que ya posee)
         let memberProjectsData: DbProject[] = [];
-        if (memberProjectIds.length > 0) {            const { data, error } = await supabase
+        if (memberProjectIds.length > 0) {
+            const { data, error } = await supabase
                 .from("projects")
                 .select("*")
                 .in("id", memberProjectIds)
@@ -133,7 +136,6 @@ export const clientDbService = {
 
         return sortedProjects as DbProject[];
     },
-
     async createProject(name: string) {
         const supabase = createClientSupabaseClient();
 
@@ -167,6 +169,64 @@ export const clientDbService = {
         }
 
         return data as DbProject;
+    },
+
+    async createProjectWithMembers(name: string, memberUserIds: string[] = []) {
+        const supabase = createClientSupabaseClient();
+
+        // Obtener el usuario actual
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+            console.error("Error al obtener el usuario actual:", userError);
+            throw (
+                userError || new Error("No se pudo obtener el usuario actual")
+            );
+        }
+
+        // Crear el proyecto con el ID del usuario actual
+        const { data: projectData, error: projectError } = await supabase
+            .from("projects")
+            .insert({
+                name,
+                id: uuidv4(),
+                user_id: user.id,
+            })
+            .select()
+            .single();
+
+        if (projectError) {
+            console.error("Error al crear proyecto:", projectError);
+            throw projectError;
+        }
+
+        const project = projectData as DbProject;
+
+        // Agregar miembros al proyecto (excluyendo al propietario)
+        const uniqueMemberIds = [...new Set(memberUserIds)].filter(
+            (id) => id !== user.id
+        );
+
+        if (uniqueMemberIds.length > 0) {
+            try {
+                await Promise.all(
+                    uniqueMemberIds.map((userId) =>
+                        this.addUserToProject(project.id, userId, "member")
+                    )
+                );
+            } catch (memberError) {
+                console.warn(
+                    "Error al agregar algunos miembros al proyecto:",
+                    memberError
+                );
+                // No fallar la creación del proyecto si hay errores agregando miembros
+            }
+        }
+
+        return project;
     },
 
     async updateProject(id: string, name: string) {
@@ -370,13 +430,14 @@ export const clientDbService = {
         if (error) {
             console.error("Error al eliminar tarea:", error);
             throw error;
-        }        return true;
+        }
+        return true;
     },
 
     // Miembros del proyecto
     async getProjectMembers(projectId: string) {
         const supabase = createClientSupabaseClient();
-        
+
         try {
             const { data, error } = await supabase
                 .from("project_members")
@@ -390,7 +451,9 @@ export const clientDbService = {
 
             return data as DbProjectMember[];
         } catch (error) {
-            console.warn("Tabla project_members no existe, devolviendo array vacío");
+            console.warn(
+                "Tabla project_members no existe, devolviendo array vacío"
+            );
             return [];
         }
     },
