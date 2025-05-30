@@ -38,10 +38,12 @@ import { Project } from "@/components/project-sidebar";
 export default function NotoBoard() {
     const { user, signOut } = useAuth();
     const router = useRouter();
-      // Estado para nuevo proyecto
+    // Estado para nuevo proyecto
     const [newProjectName, setNewProjectName] = useState("");
-    const [selectedUsersForProject, setSelectedUsersForProject] = useState<any[]>([]);
-    
+    const [selectedUsersForProject, setSelectedUsersForProject] = useState<
+        any[]
+    >([]);
+
     // Hook para manejar proyectos (ahora pasa el user como parámetro)
     const {
         projects,
@@ -50,11 +52,11 @@ export default function NotoBoard() {
         users,
         isLoading,
         handleProjectCreate,
-        handleProjectUpdate, 
+        handleProjectUpdate,
         handleProjectDelete,
         handleProjectSelect,
-    } = useProjects(user);    // Hooks para manejar columnas y tareas cuando hay un proyecto activo
-    const { 
+    } = useProjects(user); // Hooks para manejar columnas y tareas cuando hay un proyecto activo
+    const {
         newColumnTitle,
         setNewColumnTitle,
         editingColumnTitle,
@@ -63,8 +65,14 @@ export default function NotoBoard() {
         addColumn,
         updateColumnTitle,
         deleteColumn,
-        prepareEditColumn
-    } = useColumns(activeProject?.id || "", activeProject || null, projects, setProjects);    const {
+        prepareEditColumn,
+    } = useColumns(
+        activeProject?.id || "",
+        activeProject || null,
+        projects,
+        setProjects
+    );
+    const {
         newTaskTitle,
         setNewTaskTitle,
         newTaskDescription,
@@ -80,11 +88,18 @@ export default function NotoBoard() {
         deleteTask,
         prepareEditTask,
         toggleUserAssignment,
-        prepareNewTask
-    } = useTasks(activeProject?.id || "", activeProject || null, projects, setProjects);    const {
-        handleTaskDrop,
-        handleTaskDragStart
-    } = useDragAndDrop(activeProject || null, activeProject?.id || "", setProjects);
+        prepareNewTask,
+    } = useTasks(
+        activeProject?.id || "",
+        activeProject || null,
+        projects,
+        setProjects
+    );
+    const { handleTaskDrop, handleTaskDragStart } = useDragAndDrop(
+        activeProject || null,
+        activeProject?.id || "",
+        setProjects
+    );
 
     // Función para cerrar sesión
     const handleSignOut = async () => {
@@ -94,12 +109,14 @@ export default function NotoBoard() {
         } catch (error) {
             console.error("Error al cerrar sesión:", error);
         }
-    };    // Función para crear nuevo proyecto
+    }; // Función para crear nuevo proyecto
     const createNewProject = async () => {
         if (!newProjectName.trim()) return;
-        
+
         try {
-            const memberUserIds = selectedUsersForProject.map(user => user.id);
+            const memberUserIds = selectedUsersForProject.map(
+                (user) => user.id
+            );
             await handleProjectCreate(newProjectName.trim(), memberUserIds);
             setNewProjectName("");
             setSelectedUsersForProject([]);
@@ -109,10 +126,10 @@ export default function NotoBoard() {
     };
 
     const toggleUserForProject = (user: any) => {
-        setSelectedUsersForProject(prev => {
-            const isSelected = prev.some(u => u.id === user.id);
+        setSelectedUsersForProject((prev) => {
+            const isSelected = prev.some((u) => u.id === user.id);
             if (isSelected) {
-                return prev.filter(u => u.id !== user.id);
+                return prev.filter((u) => u.id !== user.id);
             } else {
                 return [...prev, user];
             }
@@ -137,7 +154,8 @@ export default function NotoBoard() {
     }
 
     return (
-        <SidebarProvider>            <ProjectSidebar
+        <SidebarProvider>
+            <ProjectSidebar
                 projects={sidebarProjects}
                 activeProjectId={activeProject?.id || ""}
                 userEmail={user?.email || ""}
@@ -164,7 +182,8 @@ export default function NotoBoard() {
                                         <Plus className="mr-2 h-4 w-4" />
                                         Nuevo Proyecto
                                     </Button>
-                                </DialogTrigger>                                <DialogContent>
+                                </DialogTrigger>
+                                <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>
                                             Crear Nuevo Proyecto
@@ -179,33 +198,61 @@ export default function NotoBoard() {
                                                 id="project-name"
                                                 value={newProjectName}
                                                 onChange={(e) =>
-                                                    setNewProjectName(e.target.value)
+                                                    setNewProjectName(
+                                                        e.target.value
+                                                    )
                                                 }
                                                 placeholder="Ingresa el nombre del proyecto"
                                             />
                                         </div>
                                         <div>
-                                            <Label>Agregar miembros al proyecto (opcional)</Label>
+                                            <Label>
+                                                Agregar miembros al proyecto
+                                                (opcional)
+                                            </Label>
                                             <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2 mt-2">
                                                 {users.length > 0 ? (
                                                     users.map((user) => {
-                                                        const isSelected = selectedUsersForProject.some(u => u.id === user.id);
+                                                        const isSelected =
+                                                            selectedUsersForProject.some(
+                                                                (u) =>
+                                                                    u.id ===
+                                                                    user.id
+                                                            );
                                                         return (
                                                             <div
                                                                 key={user.id}
                                                                 className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/50 ${
-                                                                    isSelected ? 'bg-muted' : ''
+                                                                    isSelected
+                                                                        ? "bg-muted"
+                                                                        : ""
                                                                 }`}
-                                                                onClick={() => toggleUserForProject(user)}
+                                                                onClick={() =>
+                                                                    toggleUserForProject(
+                                                                        user
+                                                                    )
+                                                                }
                                                             >
                                                                 <Avatar className="h-6 w-6">
                                                                     <AvatarFallback className="text-xs">
-                                                                        {user.name.charAt(0).toUpperCase()}
+                                                                        {user.name
+                                                                            .charAt(
+                                                                                0
+                                                                            )
+                                                                            .toUpperCase()}
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div className="flex-1 text-sm">
-                                                                    <div className="font-medium">{user.name}</div>
-                                                                    <div className="text-muted-foreground text-xs">{user.email}</div>
+                                                                    <div className="font-medium">
+                                                                        {
+                                                                            user.name
+                                                                        }
+                                                                    </div>
+                                                                    <div className="text-muted-foreground text-xs">
+                                                                        {
+                                                                            user.email
+                                                                        }
+                                                                    </div>
                                                                 </div>
                                                                 {isSelected && (
                                                                     <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
@@ -217,13 +264,27 @@ export default function NotoBoard() {
                                                     })
                                                 ) : (
                                                     <div className="text-sm text-muted-foreground text-center py-4">
-                                                        No hay usuarios disponibles
+                                                        No hay usuarios
+                                                        disponibles
                                                     </div>
                                                 )}
                                             </div>
-                                            {selectedUsersForProject.length > 0 && (
+                                            {selectedUsersForProject.length >
+                                                0 && (
                                                 <div className="text-sm text-muted-foreground mt-2">
-                                                    {selectedUsersForProject.length} usuario{selectedUsersForProject.length === 1 ? '' : 's'} seleccionado{selectedUsersForProject.length === 1 ? '' : 's'}
+                                                    {
+                                                        selectedUsersForProject.length
+                                                    }{" "}
+                                                    usuario
+                                                    {selectedUsersForProject.length ===
+                                                    1
+                                                        ? ""
+                                                        : "s"}{" "}
+                                                    seleccionado
+                                                    {selectedUsersForProject.length ===
+                                                    1
+                                                        ? ""
+                                                        : "s"}
                                                 </div>
                                             )}
                                         </div>
@@ -250,8 +311,9 @@ export default function NotoBoard() {
                     </div>
                 </header>
 
-                <div className="flex-1 space-y-4 p-6">                    {activeProject ? (
-                        <KanbanBoard 
+                <div className="flex-1 space-y-4 p-6">
+                    {activeProject ? (
+                        <KanbanBoard
                             activeProject={activeProject}
                             users={users}
                             newColumnTitle={newColumnTitle}
@@ -290,7 +352,8 @@ export default function NotoBoard() {
                                         <Plus className="mr-2 h-4 w-4" />
                                         Crear Proyecto
                                     </Button>
-                                </DialogTrigger>                                <DialogContent>
+                                </DialogTrigger>
+                                <DialogContent>
                                     <DialogHeader>
                                         <DialogTitle>
                                             Crear Nuevo Proyecto
@@ -305,33 +368,61 @@ export default function NotoBoard() {
                                                 id="new-project-name"
                                                 value={newProjectName}
                                                 onChange={(e) =>
-                                                    setNewProjectName(e.target.value)
+                                                    setNewProjectName(
+                                                        e.target.value
+                                                    )
                                                 }
                                                 placeholder="Ingresa el nombre del proyecto"
                                             />
                                         </div>
                                         <div>
-                                            <Label>Agregar miembros al proyecto (opcional)</Label>
+                                            <Label>
+                                                Agregar miembros al proyecto
+                                                (opcional)
+                                            </Label>
                                             <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2 mt-2">
                                                 {users.length > 0 ? (
                                                     users.map((user) => {
-                                                        const isSelected = selectedUsersForProject.some(u => u.id === user.id);
+                                                        const isSelected =
+                                                            selectedUsersForProject.some(
+                                                                (u) =>
+                                                                    u.id ===
+                                                                    user.id
+                                                            );
                                                         return (
                                                             <div
                                                                 key={user.id}
                                                                 className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/50 ${
-                                                                    isSelected ? 'bg-muted' : ''
+                                                                    isSelected
+                                                                        ? "bg-muted"
+                                                                        : ""
                                                                 }`}
-                                                                onClick={() => toggleUserForProject(user)}
+                                                                onClick={() =>
+                                                                    toggleUserForProject(
+                                                                        user
+                                                                    )
+                                                                }
                                                             >
                                                                 <Avatar className="h-6 w-6">
                                                                     <AvatarFallback className="text-xs">
-                                                                        {user.name.charAt(0).toUpperCase()}
+                                                                        {user.name
+                                                                            .charAt(
+                                                                                0
+                                                                            )
+                                                                            .toUpperCase()}
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div className="flex-1 text-sm">
-                                                                    <div className="font-medium">{user.name}</div>
-                                                                    <div className="text-muted-foreground text-xs">{user.email}</div>
+                                                                    <div className="font-medium">
+                                                                        {
+                                                                            user.name
+                                                                        }
+                                                                    </div>
+                                                                    <div className="text-muted-foreground text-xs">
+                                                                        {
+                                                                            user.email
+                                                                        }
+                                                                    </div>
                                                                 </div>
                                                                 {isSelected && (
                                                                     <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
@@ -343,13 +434,27 @@ export default function NotoBoard() {
                                                     })
                                                 ) : (
                                                     <div className="text-sm text-muted-foreground text-center py-4">
-                                                        No hay usuarios disponibles
+                                                        No hay usuarios
+                                                        disponibles
                                                     </div>
                                                 )}
                                             </div>
-                                            {selectedUsersForProject.length > 0 && (
+                                            {selectedUsersForProject.length >
+                                                0 && (
                                                 <div className="text-sm text-muted-foreground mt-2">
-                                                    {selectedUsersForProject.length} usuario{selectedUsersForProject.length === 1 ? '' : 's'} seleccionado{selectedUsersForProject.length === 1 ? '' : 's'}
+                                                    {
+                                                        selectedUsersForProject.length
+                                                    }{" "}
+                                                    usuario
+                                                    {selectedUsersForProject.length ===
+                                                    1
+                                                        ? ""
+                                                        : "s"}{" "}
+                                                    seleccionado
+                                                    {selectedUsersForProject.length ===
+                                                    1
+                                                        ? ""
+                                                        : "s"}
                                                 </div>
                                             )}
                                         </div>
