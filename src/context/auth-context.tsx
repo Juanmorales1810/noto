@@ -37,9 +37,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClientSupabaseClient();
+
+    // Solo crear el cliente en el lado del cliente
+    const [supabase] = useState(() => {
+        if (typeof window !== "undefined") {
+            return createClientSupabaseClient();
+        }
+        return null;
+    });
 
     useEffect(() => {
+        if (!supabase) {
+            setIsLoading(false);
+            return;
+        }
+
         // Verificar si hay una sesión activa al cargar la página
         const getSession = async () => {
             setIsLoading(true);
@@ -61,16 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         };
 
-        getSession();
-
-        // Suscribirse a cambios en la autenticación
+        getSession(); // Suscribirse a cambios en la autenticación
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user || null);
-            setIsLoading(false);
-        });
+        } = supabase.auth.onAuthStateChange(
+            (event: any, session: Session | null) => {
+                setSession(session);
+                setUser(session?.user || null);
+                setIsLoading(false);
+            }
+        );
 
         return () => {
             subscription.unsubscribe();
@@ -78,6 +90,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [supabase]);
 
     const signUp = async (email: string, password: string) => {
+        if (!supabase) {
+            return {
+                error: new Error("Supabase client not available"),
+                success: false,
+            };
+        }
+
         try {
             const { error } = await supabase.auth.signUp({
                 email,
@@ -96,8 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
         }
     };
-
     const signIn = async (email: string, password: string) => {
+        if (!supabase) {
+            return {
+                error: new Error("Supabase client not available"),
+                success: false,
+            };
+        }
+
         try {
             const { error } = await supabase.auth.signInWithPassword({
                 email,
@@ -118,6 +143,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const signInWithProvider = async (provider: Provider) => {
+        if (!supabase) {
+            return {
+                error: new Error("Supabase client not available"),
+                success: false,
+            };
+        }
+
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
@@ -140,6 +172,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const signOut = async () => {
+        if (!supabase) {
+            console.warn("Supabase client not available");
+            return;
+        }
+
         try {
             await supabase.auth.signOut();
         } catch (error) {
