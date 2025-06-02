@@ -31,9 +31,10 @@ import { useDragAndDrop } from "./kanban/hooks/useDragAndDrop";
 
 // Componentes
 import { KanbanBoard } from "./kanban/KanbanBoard";
+import { Project } from "./kanban/types";
 
 // Tipos
-import { Project } from "@/components/project-sidebar";
+// import { Project } from "@/components/project-sidebar";
 
 export default function NotoBoard() {
     const { user, signOut } = useAuth();
@@ -134,12 +135,11 @@ export default function NotoBoard() {
                 return [...prev, user];
             }
         });
-    };
-
-    // Preparar proyectos para la sidebar
+    }; // Preparar proyectos para la sidebar
     const sidebarProjects: Project[] = projects.map((p) => ({
         id: p.id,
         name: p.name,
+        user_role: p.user_role,
     }));
 
     if (isLoading) {
