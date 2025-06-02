@@ -12,6 +12,14 @@ export const createClientSupabaseClient = () => {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
+        // Durante el build, las variables pueden no estar disponibles
+        // En ese caso, creamos un cliente mock que no se usará
+        if (typeof window === "undefined") {
+            console.warn(
+                "Supabase environment variables not found during build"
+            );
+            return null as any;
+        }
         throw new Error("Missing Supabase environment variables");
     }
 
