@@ -23,11 +23,13 @@ export type NotoProject = {
     id: string;
     name: string;
     columns: Column[];
+    user_role?: "owner" | "member";
 };
 
 export type Project = {
     id: string;
     name: string;
+    user_role?: "owner" | "member";
 };
 
 export type TaskFormData = {
