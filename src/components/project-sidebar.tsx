@@ -41,13 +41,17 @@ import {
     Settings,
     LogOut,
     StickyNote,
+    Crown,
+    Users,
 } from "lucide-react";
 import { ModeToggle } from "./toggle-mode";
+import { Project } from "./kanban/types";
 
-export type Project = {
-    id: string;
-    name: string;
-};
+// Eliminamos la definición local de Project
+// export type Project = {
+//     id: string;
+//     name: string;
+// };
 
 type ProjectSidebarProps = {
     projects: Project[];
@@ -289,6 +293,7 @@ export function ProjectSidebar({
                         <SidebarMenu>
                             {projects.map((project) => (
                                 <SidebarMenuItem key={project.id}>
+                                    {" "}
                                     <SidebarMenuButton
                                         isActive={
                                             project.id === activeProjectId
@@ -297,80 +302,98 @@ export function ProjectSidebar({
                                             onProjectSelect(project.id)
                                         }
                                     >
-                                        <span>{project.name}</span>
-                                    </SidebarMenuButton>
-
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <SidebarMenuAction>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </SidebarMenuAction>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <DropdownMenuItem
-                                                        onSelect={(e) => {
-                                                            e.preventDefault();
-                                                            prepareEditProject(
-                                                                project
-                                                            );
-                                                        }}
-                                                    >
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        <span>
-                                                            Editar proyecto
-                                                        </span>
-                                                    </DropdownMenuItem>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>
-                                                            Editar proyecto
-                                                        </DialogTitle>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <div className="grid gap-2">
-                                                            <Label htmlFor="edit-project-name">
-                                                                Nombre del
-                                                                proyecto
-                                                            </Label>
-                                                            <Input
-                                                                id="edit-project-name"
-                                                                value={
-                                                                    newProjectName
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setNewProjectName(
-                                                                        e.target
-                                                                            .value
-                                                                    )
-                                                                }
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button
-                                                            onClick={
-                                                                handleUpdateProject
-                                                            }
+                                        <div className="flex items-center gap-2 w-full">
+                                            {project.user_role === "owner" ? (
+                                                <Crown className="h-4 w-4 text-yellow-600" />
+                                            ) : (
+                                                <Users className="h-4 w-4 text-blue-600" />
+                                            )}
+                                            <span className="flex-1">
+                                                {project.name}
+                                            </span>
+                                        </div>
+                                    </SidebarMenuButton>{" "}
+                                    {/* Solo mostrar opciones de administración para propietarios */}
+                                    {project.user_role === "owner" && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <SidebarMenuAction>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </SidebarMenuAction>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <Dialog>
+                                                    <DialogTrigger asChild>
+                                                        <DropdownMenuItem
+                                                            onSelect={(e) => {
+                                                                e.preventDefault();
+                                                                prepareEditProject(
+                                                                    project
+                                                                );
+                                                            }}
                                                         >
-                                                            Guardar cambios
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                            <DropdownMenuItem
-                                                onSelect={() =>
-                                                    onProjectDelete(project.id)
-                                                }
-                                                className="text-destructive focus:text-destructive"
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                <span>Eliminar proyecto</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            <span>
+                                                                Editar proyecto
+                                                            </span>
+                                                        </DropdownMenuItem>
+                                                    </DialogTrigger>
+                                                    <DialogContent>
+                                                        <DialogHeader>
+                                                            <DialogTitle>
+                                                                Editar proyecto
+                                                            </DialogTitle>
+                                                        </DialogHeader>
+                                                        <div className="grid gap-4 py-4">
+                                                            <div className="grid gap-2">
+                                                                <Label htmlFor="edit-project-name">
+                                                                    Nombre del
+                                                                    proyecto
+                                                                </Label>
+                                                                <Input
+                                                                    id="edit-project-name"
+                                                                    value={
+                                                                        newProjectName
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        setNewProjectName(
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <DialogFooter>
+                                                            <Button
+                                                                onClick={
+                                                                    handleUpdateProject
+                                                                }
+                                                            >
+                                                                Guardar cambios
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </DialogContent>
+                                                </Dialog>{" "}
+                                                <DropdownMenuItem
+                                                    onSelect={() =>
+                                                        onProjectDelete(
+                                                            project.id
+                                                        )
+                                                    }
+                                                    className="text-destructive focus:text-destructive"
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>
+                                                        Eliminar proyecto
+                                                    </span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
                                 </SidebarMenuItem>
                             ))}
                         </SidebarMenu>
