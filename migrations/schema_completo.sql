@@ -121,10 +121,18 @@ CREATE POLICY "Los usuarios pueden insertar su propio perfil"
   ON users FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- Políticas para proyectos (simples para evitar recursión)
-CREATE POLICY "Propietarios pueden ver sus proyectos"
+-- Políticas para proyectos (actualizada para incluir membresías)
+DROP POLICY IF EXISTS "Propietarios pueden ver sus proyectos" ON projects;
+
+CREATE POLICY "Usuarios pueden ver proyectos donde participan"
 ON projects FOR SELECT
-USING (user_id = auth.uid());
+USING (
+  user_id = auth.uid() OR  -- Es propietario del proyecto
+  EXISTS (
+    SELECT 1 FROM project_members pm
+    WHERE pm.project_id = projects.id AND pm.user_id = auth.uid()
+  )  -- Es miembro del proyecto
+);
 
 CREATE POLICY "Usuarios pueden insertar sus propios proyectos"
 ON projects FOR INSERT
@@ -138,17 +146,23 @@ CREATE POLICY "Propietarios pueden eliminar sus proyectos"
 ON projects FOR DELETE
 USING (auth.uid() = user_id);
 
--- Políticas para columnas (simples para evitar recursión)
-CREATE POLICY "Usuarios pueden ver columnas de sus proyectos"
+-- Políticas para columnas (actualizadas para incluir membresías)
+CREATE POLICY "Usuarios pueden ver columnas de proyectos donde participan"
 ON columns FOR SELECT
 USING (
   EXISTS (
     SELECT 1 FROM projects p
-    WHERE p.id = columns.project_id AND p.user_id = auth.uid()
+    WHERE p.id = columns.project_id AND (
+      p.user_id = auth.uid() OR  -- Es propietario del proyecto
+      EXISTS (
+        SELECT 1 FROM project_members pm
+        WHERE pm.project_id = p.id AND pm.user_id = auth.uid()
+      )  -- Es miembro del proyecto
+    )
   )
 );
 
-CREATE POLICY "Usuarios pueden insertar columnas en sus proyectos"
+CREATE POLICY "Usuarios pueden insertar columnas en proyectos donde son propietarios"
 ON columns FOR INSERT
 WITH CHECK (
   EXISTS (
@@ -157,7 +171,7 @@ WITH CHECK (
   )
 );
 
-CREATE POLICY "Usuarios pueden actualizar columnas de sus proyectos"
+CREATE POLICY "Usuarios pueden actualizar columnas en proyectos donde son propietarios"
 ON columns FOR UPDATE
 USING (
   EXISTS (
@@ -166,7 +180,7 @@ USING (
   )
 );
 
-CREATE POLICY "Usuarios pueden eliminar columnas de sus proyectos"
+CREATE POLICY "Usuarios pueden eliminar columnas en proyectos donde son propietarios"
 ON columns FOR DELETE
 USING (
   EXISTS (
@@ -175,18 +189,24 @@ USING (
   )
 );
 
--- Políticas para tareas (simples para evitar recursión)
-CREATE POLICY "Usuarios pueden ver tareas de sus proyectos"
+-- Políticas para tareas (actualizadas para incluir membresías)
+CREATE POLICY "Usuarios pueden ver tareas de proyectos donde participan"
 ON tasks FOR SELECT
 USING (
   EXISTS (
     SELECT 1 FROM columns c
     JOIN projects p ON p.id = c.project_id
-    WHERE c.id = tasks.column_id AND p.user_id = auth.uid()
+    WHERE c.id = tasks.column_id AND (
+      p.user_id = auth.uid() OR  -- Es propietario del proyecto
+      EXISTS (
+        SELECT 1 FROM project_members pm
+        WHERE pm.project_id = p.id AND pm.user_id = auth.uid()
+      )  -- Es miembro del proyecto
+    )
   )
 );
 
-CREATE POLICY "Usuarios pueden insertar tareas en sus proyectos"
+CREATE POLICY "Usuarios pueden insertar tareas en proyectos donde son propietarios"
 ON tasks FOR INSERT
 WITH CHECK (
   EXISTS (
@@ -196,7 +216,7 @@ WITH CHECK (
   )
 );
 
-CREATE POLICY "Usuarios pueden actualizar tareas de sus proyectos"
+CREATE POLICY "Usuarios pueden actualizar tareas en proyectos donde son propietarios"
 ON tasks FOR UPDATE
 USING (
   EXISTS (
@@ -206,7 +226,7 @@ USING (
   )
 );
 
-CREATE POLICY "Usuarios pueden eliminar tareas de sus proyectos"
+CREATE POLICY "Usuarios pueden eliminar tareas en proyectos donde son propietarios"
 ON tasks FOR DELETE
 USING (
   EXISTS (
@@ -216,19 +236,25 @@ USING (
   )
 );
 
--- Políticas para asignaciones de tareas (simples para evitar recursión)
-CREATE POLICY "Usuarios pueden ver asignaciones de tareas de sus proyectos"
+-- Políticas para asignaciones de tareas (actualizadas para incluir membresías)
+CREATE POLICY "Usuarios pueden ver asignaciones de tareas de proyectos donde participan"
 ON task_assignments FOR SELECT
 USING (
   EXISTS (
     SELECT 1 FROM tasks t
     JOIN columns c ON c.id = t.column_id
     JOIN projects p ON p.id = c.project_id
-    WHERE t.id = task_assignments.task_id AND p.user_id = auth.uid()
+    WHERE t.id = task_assignments.task_id AND (
+      p.user_id = auth.uid() OR  -- Es propietario del proyecto
+      EXISTS (
+        SELECT 1 FROM project_members pm
+        WHERE pm.project_id = p.id AND pm.user_id = auth.uid()
+      )  -- Es miembro del proyecto
+    )
   )
 );
 
-CREATE POLICY "Usuarios pueden insertar asignaciones de tareas en sus proyectos"
+CREATE POLICY "Usuarios pueden insertar asignaciones de tareas en proyectos donde son propietarios"
 ON task_assignments FOR INSERT
 WITH CHECK (
   EXISTS (
@@ -239,7 +265,7 @@ WITH CHECK (
   )
 );
 
-CREATE POLICY "Usuarios pueden eliminar asignaciones de tareas de sus proyectos"
+CREATE POLICY "Usuarios pueden eliminar asignaciones de tareas en proyectos donde son propietarios"
 ON task_assignments FOR DELETE
 USING (
   EXISTS (
@@ -301,3 +327,29 @@ USING (user_id = auth.uid());
 
 -- Comentario
 COMMENT ON TABLE project_members IS 'Miembros de un proyecto y sus roles';
+
+-- Crear vista para proyectos accesibles por el usuario (evita recursión en políticas)
+CREATE OR REPLACE VIEW user_accessible_projects AS
+SELECT 
+    p.id,
+    p.name,
+    p.user_id,
+    p.created_at,
+    p.updated_at,
+    CASE 
+        WHEN p.user_id = auth.uid() THEN 'owner'::text
+        ELSE 'member'::text
+    END as user_role
+FROM projects p
+WHERE 
+    p.user_id = auth.uid()  -- Es propietario del proyecto
+    OR EXISTS (
+        SELECT 1 FROM project_members pm
+        WHERE pm.project_id = p.id AND pm.user_id = auth.uid()
+    );  -- Es miembro del proyecto
+
+-- Dar permisos a la vista
+GRANT SELECT ON user_accessible_projects TO authenticated;
+
+-- Comentario
+COMMENT ON VIEW user_accessible_projects IS 'Vista que muestra todos los proyectos accesibles por el usuario actual, incluyendo su rol';
