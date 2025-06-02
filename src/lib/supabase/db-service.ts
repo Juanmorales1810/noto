@@ -77,18 +77,19 @@ export const clientDbService = {
             const { data: projectsFromView, error: viewError } = await supabase
                 .from("user_accessible_projects")
                 .select("*");
-
             if (!viewError && projectsFromView) {
                 // Si la vista funciona, usarla directamente
-                const sortedProjects = projectsFromView.sort((a, b) => {
-                    const dateA = a.created_at
-                        ? new Date(a.created_at.toString()).getTime()
-                        : 0;
-                    const dateB = b.created_at
-                        ? new Date(b.created_at.toString()).getTime()
-                        : 0;
-                    return dateB - dateA;
-                });
+                const sortedProjects = projectsFromView.sort(
+                    (a: any, b: any) => {
+                        const dateA = a.created_at
+                            ? new Date(a.created_at.toString()).getTime()
+                            : 0;
+                        const dateB = b.created_at
+                            ? new Date(b.created_at.toString()).getTime()
+                            : 0;
+                        return dateB - dateA;
+                    }
+                );
 
                 return sortedProjects as DbProject[];
             }
@@ -144,7 +145,8 @@ export const clientDbService = {
             // No lanzar error, continuar solo con proyectos propios
         }
 
-        const memberProjectIds = memberProjects?.map((m) => m.project_id) || [];
+        const memberProjectIds =
+            memberProjects?.map((m: any) => m.project_id) || [];
 
         // Obtener los proyectos donde es miembro (excluyendo los que ya posee)
         let memberProjectsData: DbProject[] = [];
@@ -165,14 +167,16 @@ export const clientDbService = {
                 memberProjectsData = data as DbProject[];
             }
         } // Combinar y ordenar todos los proyectos, agregando información del rol
-        const ownedProjectsWithRole = (ownedProjects || []).map((project) => ({
-            id: project.id,
-            name: project.name,
-            user_id: project.user_id,
-            created_at: project.created_at,
-            updated_at: project.updated_at,
-            user_role: "owner" as const,
-        }));
+        const ownedProjectsWithRole = (ownedProjects || []).map(
+            (project: any) => ({
+                id: project.id,
+                name: project.name,
+                user_id: project.user_id,
+                created_at: project.created_at,
+                updated_at: project.updated_at,
+                user_role: "owner" as const,
+            })
+        );
 
         const memberProjectsWithRole = memberProjectsData.map((project) => ({
             id: project.id,
@@ -712,11 +716,9 @@ export const clientDbService = {
         }
     }, // Cargar datos completos del proyecto
     async loadFullProject(projectId: string) {
-        const supabase = createClientSupabaseClient();
-
-        // Intentar obtener proyecto usando la vista primero (incluye información de membresía)
+        const supabase = createClientSupabaseClient(); // Intentar obtener proyecto usando la vista primero (incluye información de membresía)
         let project = null;
-        let projectError = null;
+        const projectError = null;
 
         try {
             const { data: projectFromView, error: viewError } = await supabase
@@ -774,7 +776,7 @@ export const clientDbService = {
 
                 // Para cada tarea, obtener sus asignaciones
                 const tasksWithAssignments = await Promise.all(
-                    tasks.map(async (task) => {
+                    tasks.map(async (task: any) => {
                         try {
                             // Primero obtener las asignaciones
                             const {
@@ -799,7 +801,6 @@ export const clientDbService = {
                             // Para cada asignación, obtener el usuario correspondiente
                             const assignedUsers = await Promise.all(
                                 assignments.map(
-                                    //@ts-ignore
                                     async (assignment: DbTaskAssignment) => {
                                         const {
                                             data: userData,
