@@ -84,11 +84,11 @@ export function useProjects(user: any) {
                         "Completado",
                         2
                     );
-
                     setProjects([
                         {
                             id: defaultProject.id,
                             name: defaultProject.name,
+                            user_role: "owner" as const,
                             columns: [
                                 {
                                     id: column1.id,
@@ -116,11 +116,12 @@ export function useProjects(user: any) {
                             try {
                                 const fullProject =
                                     await clientDbService.loadFullProject(
-                                        project.id
+                                        project.id as string
                                     );
                                 return {
-                                    id: project.id,
-                                    name: project.name,
+                                    id: project.id as string,
+                                    name: project.name as string,
+                                    user_role: project.user_role,
                                     columns: fullProject.columns.map(
                                         (col: any) => ({
                                             id: col.id,
@@ -145,8 +146,9 @@ export function useProjects(user: any) {
                                     error
                                 );
                                 return {
-                                    id: project.id,
-                                    name: project.name,
+                                    id: project.id as string,
+                                    name: project.name as string,
+                                    user_role: project.user_role,
                                     columns: [],
                                 };
                             }
@@ -171,9 +173,16 @@ export function useProjects(user: any) {
 
     const handleProjectSelect = (projectId: string) => {
         setActiveProjectId(projectId);
-    };    const handleProjectCreate = async (projectName: string, memberUserIds: string[] = []) => {
+    };
+    const handleProjectCreate = async (
+        projectName: string,
+        memberUserIds: string[] = []
+    ) => {
         try {
-            const newProject = await clientDbService.createProjectWithMembers(projectName, memberUserIds);
+            const newProject = await clientDbService.createProjectWithMembers(
+                projectName,
+                memberUserIds
+            );
 
             // Crear columnas por defecto
             const column1 = await clientDbService.createColumn(
@@ -206,9 +215,12 @@ export function useProjects(user: any) {
             setActiveProjectId(newProject.id);
 
             const memberCount = memberUserIds.length;
-            const successMessage = memberCount > 0 
-                ? `El proyecto "${projectName}" ha sido creado con ${memberCount} miembro${memberCount === 1 ? '' : 's'}.`
-                : `El proyecto "${projectName}" ha sido creado exitosamente.`;
+            const successMessage =
+                memberCount > 0
+                    ? `El proyecto "${projectName}" ha sido creado con ${memberCount} miembro${
+                          memberCount === 1 ? "" : "s"
+                      }.`
+                    : `El proyecto "${projectName}" ha sido creado exitosamente.`;
 
             toast.success("Proyecto creado", {
                 description: successMessage,
