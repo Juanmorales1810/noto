@@ -8,6 +8,8 @@ export type DbProject = {
     user_id: string;
     created_at?: string;
     updated_at?: string;
+    // Campo adicional para indicar el rol del usuario actual
+    user_role?: "owner" | "member";
 };
 
 export type DbColumn = {
@@ -68,7 +70,36 @@ export const clientDbService = {
             throw (
                 userError || new Error("No se pudo obtener el usuario actual")
             );
-        } // Primero obtener todos los proyectos donde el usuario es propietario
+        }
+
+        // Intentar obtener proyectos usando la vista (más simple y sin recursión)
+        try {
+            const { data: projectsFromView, error: viewError } = await supabase
+                .from("user_accessible_projects")
+                .select("*");
+
+            if (!viewError && projectsFromView) {
+                // Si la vista funciona, usarla directamente
+                const sortedProjects = projectsFromView.sort((a, b) => {
+                    const dateA = a.created_at
+                        ? new Date(a.created_at.toString()).getTime()
+                        : 0;
+                    const dateB = b.created_at
+                        ? new Date(b.created_at.toString()).getTime()
+                        : 0;
+                    return dateB - dateA;
+                });
+
+                return sortedProjects as DbProject[];
+            }
+        } catch (viewError) {
+            console.warn(
+                "Vista no disponible, usando método tradicional:",
+                viewError
+            );
+        }
+
+        // Fallback: método tradicional si la vista no funciona
         const { data: ownedProjects, error: ownedError } = await supabase
             .from("projects")
             .select("*")
@@ -76,6 +107,18 @@ export const clientDbService = {
 
         if (ownedError) {
             console.error("Error al obtener proyectos propios:", ownedError);
+            // Si hay error de recursión, devolver solo mensaje informativo
+            if (ownedError.code === "42P17") {
+                console.error(
+                    "ERROR: Recursión infinita detectada en políticas RLS."
+                );
+                console.error(
+                    "SOLUCIÓN: Ejecuta el script migrations/simple_fix_rls.sql en Supabase"
+                );
+                throw new Error(
+                    "Error de configuración de base de datos. Ver consola para detalles."
+                );
+            }
             throw ownedError;
         } // Luego obtener los IDs de proyectos donde el usuario es miembro
         let memberProjects = null;
@@ -121,8 +164,29 @@ export const clientDbService = {
             } else {
                 memberProjectsData = data as DbProject[];
             }
-        } // Combinar y ordenar todos los proyectos
-        const allProjects = [...(ownedProjects || []), ...memberProjectsData];
+        } // Combinar y ordenar todos los proyectos, agregando información del rol
+        const ownedProjectsWithRole = (ownedProjects || []).map((project) => ({
+            id: project.id,
+            name: project.name,
+            user_id: project.user_id,
+            created_at: project.created_at,
+            updated_at: project.updated_at,
+            user_role: "owner" as const,
+        }));
+
+        const memberProjectsWithRole = memberProjectsData.map((project) => ({
+            id: project.id,
+            name: project.name,
+            user_id: project.user_id,
+            created_at: project.created_at,
+            updated_at: project.updated_at,
+            user_role: "member" as const,
+        }));
+
+        const allProjects = [
+            ...ownedProjectsWithRole,
+            ...memberProjectsWithRole,
+        ];
         const sortedProjects = allProjects.sort((a, b) => {
             // Usar toString() para asegurar que tenemos strings válidos
             const dateA = a.created_at
@@ -134,7 +198,7 @@ export const clientDbService = {
             return dateB - dateA;
         });
 
-        return sortedProjects as DbProject[];
+        return sortedProjects;
     },
     async createProject(name: string) {
         const supabase = createClientSupabaseClient();
@@ -646,22 +710,40 @@ export const clientDbService = {
             // Si hay un error, devolver una lista vacía como fallback
             return [];
         }
-    },
-
-    // Cargar datos completos del proyecto
+    }, // Cargar datos completos del proyecto
     async loadFullProject(projectId: string) {
         const supabase = createClientSupabaseClient();
 
-        // Obtener proyecto
-        const { data: project, error: projectError } = await supabase
-            .from("projects")
-            .select("*")
-            .eq("id", projectId)
-            .single();
+        // Intentar obtener proyecto usando la vista primero (incluye información de membresía)
+        let project = null;
+        let projectError = null;
 
-        if (projectError) {
-            console.error("Error al obtener proyecto:", projectError);
-            throw projectError;
+        try {
+            const { data: projectFromView, error: viewError } = await supabase
+                .from("user_accessible_projects")
+                .select("*")
+                .eq("id", projectId)
+                .single();
+
+            if (!viewError && projectFromView) {
+                project = projectFromView;
+            } else {
+                throw viewError;
+            }
+        } catch (error) {
+            // Fallback: intentar obtener directamente de la tabla projects
+            const { data: projectFromTable, error: tableError } = await supabase
+                .from("projects")
+                .select("*")
+                .eq("id", projectId)
+                .single();
+
+            if (tableError) {
+                console.error("Error al obtener proyecto:", tableError);
+                throw tableError;
+            }
+
+            project = projectFromTable;
         }
 
         // Obtener columnas
