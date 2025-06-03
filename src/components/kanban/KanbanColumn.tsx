@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MoreHorizontal, Edit, Trash2, Plus, X } from "lucide-react";
 import { KanbanTask } from "./KanbanTask";
+import DescriptionTiptap from "../description-tiptap";
 
 interface KanbanColumnProps {
     column: Column;
@@ -175,7 +176,7 @@ export function KanbanColumn({
                                 Agregar tarea
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-2xl">
                             <DialogHeader>
                                 <DialogTitle>Nueva tarea</DialogTitle>
                             </DialogHeader>
@@ -189,19 +190,15 @@ export function KanbanColumn({
                                             onSetNewTaskTitle(e.target.value)
                                         }
                                     />
-                                </div>
+                                </div>{" "}
                                 <div className="grid gap-2">
                                     <Label htmlFor="task-description">
                                         Descripción
                                     </Label>
-                                    <Textarea
-                                        id="task-description"
+                                    <DescriptionTiptap
                                         value={newTaskDescription}
-                                        onChange={(e) =>
-                                            onSetNewTaskDescription(
-                                                e.target.value
-                                            )
-                                        }
+                                        onChange={onSetNewTaskDescription}
+                                        placeholder="Describe la tarea..."
                                     />
                                 </div>
                                 <div className="grid gap-2">
