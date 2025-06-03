@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { MoreHorizontal, Edit, Trash2, X, GripVertical } from "lucide-react";
+import DescriptionTiptap from "../description-tiptap";
 
 interface KanbanTaskProps {
     task: Task;
@@ -98,7 +98,7 @@ export function KanbanTask({
                                         <span>Editar tarea</span>
                                     </DropdownMenuItem>
                                 </DialogTrigger>
-                                <DialogContent>
+                                <DialogContent className="sm:max-w-2xl">
                                     <DialogHeader>
                                         <DialogTitle>Editar tarea</DialogTitle>
                                     </DialogHeader>
@@ -116,19 +116,17 @@ export function KanbanTask({
                                                     )
                                                 }
                                             />
-                                        </div>
+                                        </div>{" "}
                                         <div className="grid gap-2">
                                             <Label htmlFor="edit-description">
                                                 Descripción
                                             </Label>
-                                            <Textarea
-                                                id="edit-description"
+                                            <DescriptionTiptap
                                                 value={newTaskDescription}
-                                                onChange={(e) =>
-                                                    onSetNewTaskDescription(
-                                                        e.target.value
-                                                    )
+                                                onChange={
+                                                    onSetNewTaskDescription
                                                 }
+                                                placeholder="Describe la tarea..."
                                             />
                                         </div>
                                         <div className="grid gap-2">
@@ -216,20 +214,23 @@ export function KanbanTask({
                                         />
                                         <AvatarFallback>
                                             {user.name.charAt(0)}
-                                        </AvatarFallback>
+                                        </AvatarFallback>{" "}
                                     </Avatar>
                                 ))}
                             </div>
                         </div>
                     )}
                 </div>
-                {/* <CardContent className="p-3 pt-2">
-                        {task.description && (
-                            <p className="text-sm text-muted-foreground mb-2">
-                                {task.description}
-                            </p>
-                        )}
-                    </CardContent> */}
+                {/* {task.description && (
+                    <div className="p-3 pt-2">
+                        <div
+                            className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{
+                                __html: task.description,
+                            }}
+                        />
+                    </div>
+                )} */}
             </Card>
         </div>
     );
