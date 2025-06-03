@@ -107,6 +107,27 @@
     --shadow-xl: 0px 6px 12px -3px oklch(0 0 0 / 0.09),
         0px 8px 10px -4px oklch(0 0 0 / 0.09);
     --shadow-2xl: 0px 6px 12px -3px oklch(0 0 0 / 0.22);
+    --text-default: #000000;
+    --text-gray: #6b7280;
+    --text-brown: #92400e;
+    --text-orange: #ea580c;
+    --text-yellow: #ca8a04;
+    --text-green: #16a34a;
+    --text-blue: #2563eb;
+    --text-purple: #9333ea;
+    --text-pink: #db2777;
+    --text-red: #dc2626;
+
+    --highlight-default: #ffffff;
+    --highlight-gray: #f3f4f6;
+    --highlight-brown: #fef3c7;
+    --highlight-orange: #ffedd5;
+    --highlight-yellow: #fef9c3;
+    --highlight-green: #dcfce7;
+    --highlight-blue: #dbeafe;
+    --highlight-purple: #f3e8ff;
+    --highlight-pink: #fce7f3;
+    --highlight-red: #fee2e2;
 }
 
 .dark {
@@ -155,6 +176,27 @@
     --shadow-xl: 0 1px 3px 0px oklch(0 0 0 / 0.1),
         0 8px 10px -1px oklch(0 0 0 / 0.1);
     --shadow-2xl: 0 1px 3px 0px oklch(0 0 0 / 0.25);
+    --text-default: #ffffff;
+    --text-gray: #9ca3af;
+    --text-brown: #d97706;
+    --text-orange: #f97316;
+    --text-yellow: #eab308;
+    --text-green: #22c55e;
+    --text-blue: #3b82f6;
+    --text-purple: #a855f7;
+    --text-pink: #ec4899;
+    --text-red: #ef4444;
+
+    --highlight-default: #1f2937;
+    --highlight-gray: #374151;
+    --highlight-brown: #78350f;
+    --highlight-orange: #9a3412;
+    --highlight-yellow: #854d0e;
+    --highlight-green: #166534;
+    --highlight-blue: #1e40af;
+    --highlight-purple: #6b21a8;
+    --highlight-pink: #9d174d;
+    --highlight-red: #991b1b;
 }
 
 @layer base {
@@ -164,4 +206,51 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+.ProseMirror {
+    @apply px-4 pt-2;
+    outline: none !important;
+}
+
+h1.tiptap-heading {
+    @apply mb-6 mt-8 text-4xl font-bold;
+}
+
+h2.tiptap-heading {
+    @apply mb-4 mt-6 text-3xl font-bold;
+}
+
+h3.tiptap-heading {
+    @apply mb-3 mt-4 text-xl font-bold;
+}
+
+h1.tiptap-heading:first-child,
+h2.tiptap-heading:first-child,
+h3.tiptap-heading:first-child {
+    margin-top: 0;
+}
+
+h1.tiptap-heading + h2.tiptap-heading,
+h1.tiptap-heading + h3.tiptap-heading,
+h2.tiptap-heading + h1.tiptap-heading,
+h2.tiptap-heading + h3.tiptap-heading,
+h3.tiptap-heading + h1.tiptap-heading,
+h3.tiptap-heading + h2.tiptap-heading {
+    margin-top: 0;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-accent-foreground;
+    content: attr(data-placeholder);
+}
+
+.tiptap ul,
+.tiptap ol {
+    padding: 0 1rem;
+}
+
+.tiptap blockquote {
+    border-left: 3px solid gray;
+    margin: 1.5rem 0;
+    padding-left: 1rem;
 }
