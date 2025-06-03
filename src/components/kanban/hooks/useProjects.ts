@@ -17,14 +17,28 @@ export function useProjects(user: any) {
         ? projects[0]
         : null;
 
-    // Cargar datos iniciales
-    useEffect(() => {
-        const loadInitialData = async () => {
-            if (!user) return;
+    // Función para cargar usuarios del proyecto activo
+    const loadProjectUsers = async (projectId: string | null) => {
+        if (!projectId) {
+            setUsers([]);
+            return;
+        }
 
-            setIsLoading(true);
+        try {
+            const projectUsers =
+                await clientDbService.getProjectAssignableUsers(projectId);
+            setUsers(
+                projectUsers.map((u) => ({
+                    id: u.id,
+                    name: u.name || u.email.split("@")[0],
+                    email: u.email,
+                    avatar: u.avatar_url,
+                }))
+            );
+        } catch (error) {
+            console.error("Error al cargar usuarios del proyecto:", error);
+            // En caso de error, cargar todos los usuarios como fallback
             try {
-                // Cargar usuarios
                 const allUsers = await userService.getAllUsers();
                 setUsers(
                     allUsers.map((u) => ({
@@ -34,7 +48,22 @@ export function useProjects(user: any) {
                         avatar: u.avatar_url,
                     }))
                 );
+            } catch (fallbackError) {
+                console.error(
+                    "Error al cargar usuarios fallback:",
+                    fallbackError
+                );
+                setUsers([]);
+            }
+        }
+    };
 
+    // Cargar datos iniciales
+    useEffect(() => {
+        const loadInitialData = async () => {
+            if (!user) return;
+            setIsLoading(true);
+            try {
                 // Cargar proyectos
                 const projectsData = await clientDbService.getProjects();
 
@@ -167,9 +196,15 @@ export function useProjects(user: any) {
                 setIsLoading(false);
             }
         };
-
         loadInitialData();
     }, [user]);
+
+    // Cargar usuarios cuando cambie el proyecto activo
+    useEffect(() => {
+        if (activeProject?.id) {
+            loadProjectUsers(activeProject.id);
+        }
+    }, [activeProject?.id]);
 
     const handleProjectSelect = (projectId: string) => {
         setActiveProjectId(projectId);
