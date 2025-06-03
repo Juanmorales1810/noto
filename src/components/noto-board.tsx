@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2, Plus } from "lucide-react";
 import {
@@ -28,6 +28,7 @@ import { useProjects } from "./kanban/hooks/useProjects";
 import { useColumns } from "./kanban/hooks/useColumns";
 import { useTasks } from "./kanban/hooks/useTasks";
 import { useDragAndDrop } from "./kanban/hooks/useDragAndDrop";
+import { clientDbService } from "@/lib/supabase/db-service";
 
 // Componentes
 import { KanbanBoard } from "./kanban/KanbanBoard";
@@ -44,6 +45,28 @@ export default function NotoBoard() {
     const [selectedUsersForProject, setSelectedUsersForProject] = useState<
         any[]
     >([]);
+
+    // Sincronizar usuario actual en la tabla users
+    useEffect(() => {
+        const syncUser = async () => {
+            if (user) {
+                try {
+                    await clientDbService.upsertUser({
+                        id: user.id,
+                        email: user.email || "",
+                        name:
+                            user.user_metadata?.name ||
+                            user.email?.split("@")[0],
+                        avatar_url: user.user_metadata?.avatar_url,
+                    });
+                } catch (error) {
+                    console.error("Error al sincronizar usuario:", error);
+                }
+            }
+        };
+
+        syncUser();
+    }, [user]);
 
     // Hook para manejar proyectos (ahora pasa el user como parámetro)
     const {
