@@ -526,82 +526,106 @@ export const clientDbService = {
         }
     },
 
-    async addUserToProject(
-        projectId: string,
-        userId: string,
-        role: string = "member"
-    ) {
+    // Obtener usuarios disponibles para asignar a tareas (dueño + miembros)
+    async getProjectAssignableUsers(projectId: string) {
         const supabase = createClientSupabaseClient();
 
-        // Verificar si el usuario ya es miembro del proyecto
-        const { data: existingMember } = await supabase
-            .from("project_members")
-            .select("*")
-            .eq("project_id", projectId)
-            .eq("user_id", userId)
-            .single();
+        try {
+            // Obtener información del proyecto para conocer al dueño
+            const { data: project, error: projectError } = await supabase
+                .from("projects")
+                .select("user_id")
+                .eq("id", projectId)
+                .single();
 
-        if (existingMember) {
-            // El usuario ya es miembro, devolver el miembro existente
-            return existingMember as DbProjectMember;
+            if (projectError) {
+                console.error(
+                    "Error al obtener información del proyecto:",
+                    projectError
+                );
+                throw projectError;
+            } // Obtener datos del dueño del proyecto
+            const { data: owner, error: ownerError } = await supabase
+                .from("users")
+                .select("*")
+                .eq("id", project.user_id)
+                .maybeSingle();
+
+            if (ownerError) {
+                console.error("Error al obtener datos del dueño:", ownerError);
+            }
+
+            if (!owner) {
+                console.warn(
+                    `El dueño del proyecto (${project.user_id}) no existe en la tabla users. Esto puede indicar que el usuario se registró pero no se sincronizó correctamente.`
+                );
+            }
+
+            // Obtener IDs de miembros del proyecto
+            const { data: projectMembers, error: membersError } = await supabase
+                .from("project_members")
+                .select("user_id")
+                .eq("project_id", projectId);
+
+            if (membersError && membersError.code !== "PGRST116") {
+                console.error(
+                    "Error al obtener miembros del proyecto:",
+                    membersError
+                );
+            } // Obtener datos de los miembros de la tabla users
+            let members: any[] = [];
+            if (projectMembers && projectMembers.length > 0) {
+                const memberIds = projectMembers.map((m: any) => m.user_id);
+                const { data: memberData, error: memberDataError } =
+                    await supabase
+                        .from("users")
+                        .select("*")
+                        .in("id", memberIds);
+
+                if (memberDataError) {
+                    console.error(
+                        "Error al obtener datos de miembros:",
+                        memberDataError
+                    );
+                } else {
+                    members = memberData || [];
+                }
+            }
+
+            // Combinar dueño y miembros, evitando duplicados
+            const assignableUsers: KanbanUser[] = [];
+            const addedUserIds = new Set<string>();
+
+            // Agregar el dueño
+            if (owner) {
+                assignableUsers.push({
+                    id: owner.id,
+                    name: owner.name || owner.email.split("@")[0],
+                    email: owner.email,
+                    avatar_url: owner.avatar_url,
+                });
+                addedUserIds.add(owner.id);
+            }
+
+            // Agregar miembros (excluyendo al dueño si ya está en la lista)
+            members.forEach((member: any) => {
+                if (!addedUserIds.has(member.id)) {
+                    assignableUsers.push({
+                        id: member.id,
+                        name: member.name || member.email.split("@")[0],
+                        email: member.email,
+                        avatar_url: member.avatar_url,
+                    });
+                    addedUserIds.add(member.id);
+                }
+            });
+
+            return assignableUsers;
+        } catch (error) {
+            console.error("Error al obtener usuarios asignables:", error);
+            // Como fallback, devolver todos los usuarios disponibles
+            return await this.getUsers();
         }
-
-        // Agregar el usuario como miembro del proyecto
-        const { data, error } = await supabase
-            .from("project_members")
-            .insert({
-                id: uuidv4(),
-                project_id: projectId,
-                user_id: userId,
-                role,
-            })
-            .select()
-            .single();
-
-        if (error) {
-            console.error("Error al agregar usuario al proyecto:", error);
-            throw error;
-        }
-
-        return data as DbProjectMember;
-    },
-
-    async removeUserFromProject(projectId: string, userId: string) {
-        const supabase = createClientSupabaseClient();
-        const { error } = await supabase
-            .from("project_members")
-            .delete()
-            .eq("project_id", projectId)
-            .eq("user_id", userId);
-
-        if (error) {
-            console.error("Error al eliminar usuario del proyecto:", error);
-            throw error;
-        }
-
-        return true;
-    },
-
-    async updateProjectMemberRole(
-        projectId: string,
-        userId: string,
-        role: string
-    ) {
-        const supabase = createClientSupabaseClient();
-        const { data, error } = await supabase
-            .from("project_members")
-            .update({ role })
-            .eq("project_id", projectId)
-            .eq("user_id", userId)
-            .select()
-            .single();
-
-        if (error) {
-            console.error("Error al actualizar rol del miembro:", error);
-            throw error;
-        }
-
-        return data as DbProjectMember;
     },
 
     // Asignaciones de tareas
@@ -899,5 +923,30 @@ export const clientDbService = {
             // Devolver el usuario original como fallback
             return user as KanbanUser;
         }
+    },
+
+    async addUserToProject(
+        projectId: string,
+        userId: string,
+        role: "owner" | "member" = "member"
+    ) {
+        const supabase = createClientSupabaseClient();
+
+        const { data, error } = await supabase
+            .from("project_members")
+            .insert({
+                project_id: projectId,
+                user_id: userId,
+                role,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Error al agregar usuario al proyecto:", error);
+            throw error;
+        }
+
+        return data;
     },
 };
