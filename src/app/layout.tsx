@@ -2,9 +2,7 @@ import type React from "react";
 import "@/styles/globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/context/auth-context";
 import { Toaster } from "@/components/ui/sonner";
-import ErrorPolicy from "@/components/error-policy";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,11 +25,8 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange
                 >
-                    <AuthProvider>
-                        <ErrorPolicy />
-                        {children}
-                        <Toaster />
-                    </AuthProvider>
+                    {children}
+                    <Toaster />
                 </ThemeProvider>
             </body>
         </html>

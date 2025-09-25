@@ -1,10 +1,8 @@
-import { ProtectedRoute } from "@/components/auth/protected-route";
-import NotoBoard from "@/components/noto-board";
-
 export default function HomePage() {
     return (
-        <ProtectedRoute>
-            <NotoBoard />
-        </ProtectedRoute>
+        <div>
+            <h1>Bienvenido a Tablero de Tareas</h1>
+            <p>Comienza a gestionar tus tareas creando un nuevo tablero.</p>
+        </div>
     );
 }
